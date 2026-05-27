@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "iLjrfUoOaCI=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ojoroJustice\\Desktop\\sotnetteam\\CSE325-Team-2\\CSE325-Team-2.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ojoroJustice\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.8\\microsoft.aspnetcore.app.internal.assets.10.0.8.nupkg.sha512"
+  ],
+  "logs": []
+}
