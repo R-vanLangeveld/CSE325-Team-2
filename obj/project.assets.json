@@ -51,11 +51,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ojoroJustice\\Desktop\\sotnetteam\\CSE325-Team-2\\CSE325-Team-2.csproj",
+      "projectUniqueName": "C:\\Users\\ojoroJustice\\Desktop\\dotnetteam\\CSE325-Team-2\\CSE325-Team-2.csproj",
       "projectName": "CSE325-Team-2",
-      "projectPath": "C:\\Users\\ojoroJustice\\Desktop\\sotnetteam\\CSE325-Team-2\\CSE325-Team-2.csproj",
+      "projectPath": "C:\\Users\\ojoroJustice\\Desktop\\dotnetteam\\CSE325-Team-2\\CSE325-Team-2.csproj",
       "packagesPath": "C:\\Users\\ojoroJustice\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ojoroJustice\\Desktop\\sotnetteam\\CSE325-Team-2\\obj\\",
+      "outputPath": "C:\\Users\\ojoroJustice\\Desktop\\dotnetteam\\CSE325-Team-2\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
