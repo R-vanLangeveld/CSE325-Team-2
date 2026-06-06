@@ -6,6 +6,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+
+var connectionString = builder.Configuration["DATABASE_URL"] ?? builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+
+var dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+builder.Services.AddSingleton(dataSource);
+builder.Services.AddScoped<HolidayPlanner.Data.HolidayPlannerContext>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
