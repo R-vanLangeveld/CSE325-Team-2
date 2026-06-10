@@ -1,4 +1,4 @@
-    namespace HolidayPlanner.DTOs
+namespace HolidayPlanner.DTOs
 {
     public class UserDto
     {

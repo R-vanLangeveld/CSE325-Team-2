@@ -1,0 +1,22 @@
+@page "/login"
+@rendermode InteractiveServer
+
+<PageTitle>Login</PageTitle>
+
+<h1>Login</h1>
+
+<form action="/profile" method="get">
+  <fieldset>
+    <label>Username:
+      <input type="email" name="username" id="username">
+    </label>
+    <label>Password:
+      <input type="text" name="password" id="password">
+    </label>
+  </fieldset>
+  <input type="button" value="Login">
+</form>
+
+<a href="../registration">
+  <span>New User? Click here to register</span>
+</a>

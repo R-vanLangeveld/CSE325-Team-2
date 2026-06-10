@@ -1,0 +1,25 @@
+@page "/registration"
+@rendermode InteractiveServer
+
+<PageTitle>Registration</PageTitle>
+
+<h1>Registration</h1>
+
+<form action="/registration" method="post">
+  <fieldset>
+    <label>Name:
+      <input type="text" name="name" id="name" placeholder="Full name or your Initials">
+    </label>
+    <label>Username:
+      <input type="email" name="username" id="username">
+    </label>
+    <label>Password:
+      <input type="text" name="password" id="password">
+    </label>
+  </fieldset>
+  <input type="button" value="Register">
+</form>
+
+<a href="../login">
+  <span>Already have an account? Click here to login</span>
+</a>
