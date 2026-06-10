@@ -7,7 +7,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 
-var connectionString = builder.Configuration["DATABASE_URL"] ?? builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+var rawConn = builder.Configuration["DATABASE_URL"] 
+    ?? builder.Configuration.GetConnectionString("Default") 
+    ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+
+var connectionString = ConvertToNpgsqlConnectionString(rawConn);
 
 var dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
 builder.Services.AddSingleton(dataSource);
@@ -32,3 +36,24 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+static string ConvertToNpgsqlConnectionString(string input)
+{
+    if (!input.StartsWith("postgres://") && !input.StartsWith("postgresql://"))
+        return input;
+
+    var uri = new Uri(input);
+    var userInfo = uri.UserInfo.Split(':');
+    var database = uri.AbsolutePath.TrimStart('/').Split('?')[0];
+
+    return new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Database = database,
+        Username = userInfo[0],
+        Password = userInfo.Length > 1 ? userInfo[1] : string.Empty,
+        SslMode = Npgsql.SslMode.Require,
+        TrustServerCertificate = true
+    }.ConnectionString;
+}
