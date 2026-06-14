@@ -3,6 +3,7 @@ using HolidayPlanner.DTOs;
 using HolidayPlanner.Model;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using Microsoft.AspNetCore.Authentication;
 
 namespace HolidayPlanner.Services;
 
@@ -19,7 +20,7 @@ public class UsersController : Controller {
 
 	// Gets the Name and Username of a user from the Users table of the database
 	[HttpGet("{id}")]
-	public async Task<IActionResult> GetUserById(string id) {
+	public async Task<UserDto> GetUserById(string id) {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
 
@@ -33,28 +34,26 @@ public class UsersController : Controller {
 			user.Add(MapToDto(result));
 		}
 
-		return Ok(user);
+		return user[0];
 	}
 
-	// Ryndee: Used when logging in. maybe, I don't know
-	/*
-	public async Task<IActionResult> GetUserByUsername(string username) {
+	// Gets the PasswordHash of the current user. Used when logging in
+	public async Task<User> GetPasswordHashByUsername(string username) {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
-
-		command.CommandText = "SELECT \"Name\", \"Username\" FROM \"Users\" WHERE \"Username\" = @username";
+	
+		command.CommandText = "SELECT \"PasswordHash\" FROM \"Users\" WHERE \"Username\" = @username";
 		command.Parameters.AddWithValue("username", username);
-
+	
 		var result = await command.ExecuteReaderAsync();
-		var user = new List<UserDto>();
-
+		var user = new List<User>();
+	
 		while (await result.ReadAsync()) {
-			user.Add(MapToDto(result));
+			user[0].PasswordHash = result.GetString(result.GetOrdinal("PasswordHash"));
 		}
-
-		return Ok(user);
+	
+		return user[0];
 	}
-  */
 
 	// Ryndee: CheckIfUsernameExists will be called before CreateUser and before the user is allowed to log in. Like this: 
 	/* if(UserController.CheckIfUsernameExists(username) == false) {
@@ -63,11 +62,11 @@ public class UsersController : Controller {
 	} */
 
 	// Checks if the inputted username has an account
-	public async Task<bool> CheckIfUsernameExists(string Username) {
+	public async Task<int?> CheckIfUsernameExists(string Username) {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
 
-		command.CommandText = "SELECT \"Username\" FROM \"Users\" WHERE \"Username\" = @username";
+		command.CommandText = "SELECT \"Username\", \"Id\" FROM \"Users\" WHERE \"Username\" = @username";
 		command.Parameters.AddWithValue("username", Username);
 
 		var result = await command.ExecuteReaderAsync();
@@ -77,39 +76,19 @@ public class UsersController : Controller {
 			user.Add(MapToDto(result));
 		}
 
-		return user.Count > 0;
+		return user[0].Id;
 	}
 
-	// Ryndee: I don't fully understand DTO's, but we need to create the password somewhere. And it would be nice if the user could change it, but only if they're logged in.
-	/* string passwordHash = new PasswordHasher<User>().HashPassword(user, password);
-	var hashVarificationResult = new  PasswordHasher<User>().VerifyHashedPassword(null, passwordHash, password);
-	switch (hashVarificationResult) {
-		case hashVarificationResult.Failed:
-			Console.WriteLine("Incorrect Password"); // Login
-			Console.WriteLine("Password failed to properly hash"); // Create user
-			break;
-		case hashVarificationResult.Success:
-			Console.WriteLine("The password is correct"); // Login
-			Console.WriteLine("Password successfully hashed"); // Create user
-			break;
-		case hashVarificationResult.SuccessRehashNeeded:
-			Console.WriteLine("Password ok but should be rehashed and updated.");
-			break;
-		
-		default:
-			throw new ArgumentOutOfRangeException();
-		} */
-	// Ryndee: Thank you Pang on Stack Overflow for the example of how to use the PasswordHasher (https://stackoverflow.com/questions/4181198/how-to-hash-a-password about halfway down the page)
-
 	// Creates a new user to the Users table of the database
-	public async Task<IActionResult> CreateUser(UserDto userDto) {
+	public async Task<IActionResult> CreateUser(UserDto user, string password) {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
 
-		command.CommandText = "INSERT INTO \"Users\" (\"Name\", \"Username\") VALUES (@name, @username) RETURNING \"Id\"";
-		command.Parameters.AddWithValue("id", userDto.Id);
-		command.Parameters.AddWithValue("name", userDto.Name);
-		command.Parameters.AddWithValue("username", userDto.Username);
+		command.CommandText = "INSERT INTO \"Users\" (\"Name\", \"Username\",\"PasswordHash\") VALUES (@name, @username, @password) RETURNING \"Id\"";
+		command.Parameters.AddWithValue("id", user.Id);
+		command.Parameters.AddWithValue("name", user.Name);
+		command.Parameters.AddWithValue("username", user.Username);
+		command.Parameters.AddWithValue("password", password);
 
 		var newUserId = await command.ExecuteScalarAsync();    
 
@@ -117,14 +96,15 @@ public class UsersController : Controller {
 	}
 
 	// Changes the name and password of a user in the Users table of the database
-	public async Task<IActionResult> UpdateUser(UserDto userDto) {
+	public async Task<IActionResult> UpdateUser(UserDto user, string password) {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
 
-		command.CommandText = "UPDATE \"Users\" SET \"Name\" = @name, \"Username\" = @username WHERE \"Id\" = @id";
-		command.Parameters.AddWithValue("id", userDto.Id);
-		command.Parameters.AddWithValue("name", userDto.Name);
-		command.Parameters.AddWithValue("username", userDto.Username);
+		command.CommandText = "UPDATE \"Users\" SET \"Name\" = @name, \"PasswordHash\" = @password WHERE \"Id\" = @id AND \"Username\" = @username";
+		command.Parameters.AddWithValue("id", user.Id);
+		command.Parameters.AddWithValue("name", user.Name);
+		command.Parameters.AddWithValue("username", user.Username);
+		command.Parameters.AddWithValue("password", password);
 
 		var rowsAffected = await command.ExecuteNonQueryAsync();
 
@@ -157,104 +137,25 @@ public class UsersController : Controller {
 		Name     = reader.GetString(reader.GetOrdinal("Name")),
 		Username = reader.GetString(reader.GetOrdinal("Username")),
 	};
+
+// 	public static string GenerateJwtToken() {
+// 		var tokenHandler = new JwtSecurityTokenHandler();
+
+// var tokenDescriptor = new SecurityTokenDescriptor
+// {
+//     Subject = new ClaimsIdentity(new[]
+//     {
+//         new Claim(ClaimTypes.Name, user.Username),
+//         new Claim(ClaimTypes.Role, "Admin")
+//     }),
+//     Expires = DateTime.UtcNow.AddHours(1),
+//     SigningCredentials = new SigningCredentials(
+//         new SymmetricSecurityKey(key),
+//         SecurityAlgorithms.HmacSha256Signature)
+// };
+
+// var token = tokenHandler.CreateToken(tokenDescriptor);
+
+// return tokenHandler.WriteToken(token);
+// 	}
 }
-
-
-/* cse 340 js code but edited
-
-async function registerUser(req, res) {
-	let nav = await utilities.getNav();
-	const { Name, Username, PasswordHash } = req.body;
-	
-	let hashedPassword;
-	try {
-		hashedPassword = await bcrypt.hashSync(PasswordHash, 10);
-	} catch (error) {
-		req.flash("notice", "Sorry, there was an error processing the registration.");
-		res.status(500).render("profile/registration", {title: "Register", nav, errors: null});
-	}
-
-	const regResult = await userModel.registerUser(
-		Name,
-		Username,
-		hashedPassword
-	);
-
-	if (regResult) {
-		req.flash("notice", `Thank you ${Name} for registering. Please log in.`);
-		res.status(201).render("profile/login", {title: "Login", nav, errors: null});
-	} else {
-		req.flash("notice", "Sorry, the registration failed.")
-		res.status(501).render("profile/registration", {title: "Register", nav});
-	}
-}
-
-async function userLogin(req, res) {
-	let nav = await utilities.getNav();
-	const { Username, PasswordHash } = req.body;
-	const userData = await userModel.getUserByEmail(Username);
-	if (!userData) {
-		req.flash("notice", "Please check your credentials and try again.");
-		res.status(400).render("profile/login", {title: "Login", nav, errors: null, Username});
-		return
-	}
-	try {
-		if (await bcrypt.compare(PasswordHash, userData.PasswordHash)) {
-			delete userData.PasswordHash;
-			const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET, {expiresIn: 3600 * 1000 });
-			if (process.env.NODE_ENV === "development") {
-				res.cookie("jwt", accessToken, { httpOnly: true, maxAge: 3600 * 1000 });
-			} else {
-				res.cookie("jwt", accessToken, { httpOnly: true, secure: true, maxAge: 3600 * 1000 });
-			}
-			return res.redirect("/profile/");
-		} else {
-			req.flash("message notice", "Please check your credentials and try again.");
-			res.status(400).render("profile/login", {title: "Login", nav, errors: null, Username});
-		}
-	} catch (error) {
-		throw new Error("Access Forbidden");
-	}
-}
-
-async function buildUpdateUser(req, res, next) {
-	let nav = await utilities.getNav();
-	
-  const Id = parseInt(req.params.Id);
-	const userInfo = await userModel.getUserById(Id);
-	
-	res.render("user/update", {title: "Edit Profile", nav, errors: null, Id: userInfo[0].Id, Name: userInfo[0].Name});
-}
-
-async function updateUserInfo(req, res) {
-	let nav = await utilities.getNav();
-	const { Id, Name, PasswordHash } = req.body;
-	
-	const updateResult = await userModel.updateUserInfo(
-		Id, 
-		Name,
-		PasswordHash
-	);
-
-	const userData = await userModel.getUserById(Id);
-	if (userData) {
-		try {
-			delete userData.PasswordHash;
-			const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET, {expiresIn: 3600 * 1000 });
-			if (process.env.NODE_ENV === "development") {
-				res.cookie("jwt", accessToken, { httpOnly: true, maxAge: 3600 * 1000 });
-			} else {
-				res.cookie("jwt", accessToken, { httpOnly: true, secure: true, maxAge: 3600 * 1000 });
-			}
-		} catch (error) {
-			console.log(error);
-		}
-		req.flash("notice", "Your Profile has been updated.");
-		res.render("profile", {title: "Profile", nav, errors: null});
-	} else {
-		req.flash("notice", "Sorry, the update failed.")
-		res.status(501).render("profile/update", {title: "Edit Profile", nav});
-	}
-}
-
-*/

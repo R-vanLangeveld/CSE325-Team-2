@@ -1,7 +1,18 @@
 ﻿@page "/profile"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Identity
+@inject NavigationManager Navigation
 
 <PageTitle>Profile</PageTitle>
 
 <h1>Profile Settings</h1>
 
+<a href="../login">
+  <button style="font-size: large; padding: 15px; border-radius: 15px;">Click here to login</button>
+</a>
+
+<br><br><hr><br>
+
+<a href="../registration">
+  <button style="font-size: large; padding: 15px; border-radius: 15px;">Click here to register</button>
+</a>

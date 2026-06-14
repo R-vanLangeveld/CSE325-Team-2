@@ -1,25 +1,86 @@
 @page "/registration"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Identity
+@inject NavigationManager Navigation
 
 <PageTitle>Registration</PageTitle>
 
-<h1>Registration</h1>
+@* <h1>Registration</h1> *@
+<br><br>
+@* sytle attributes can be deleted *@
+<EditForm Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="RegisterUser" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 10px; border-radius: 15px;">
+    <legend style="font-size: x-large;">Register</legend>
 
-<form action="/registration" method="post">
-  <fieldset>
-    <label>Name:
-      <input type="text" name="name" id="name" placeholder="Full name or your Initials">
-    </label>
-    <label>Username:
-      <input type="email" name="username" id="username">
-    </label>
-    <label>Password:
-      <input type="text" name="password" id="password">
-    </label>
+    <label asp-for="name" style="font-size: large;">Name:</label>
+    <input asp-for="name" type="text" required @bind-value="userDto.Name" title="Type either your full name or your initials"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+    <label asp-for="username" style="font-size: large; margin-top: 20px;">Username:</label>
+    <input asp-for="username" type="email" required @bind-value="userDto.Username" placeholder="exapmleEmail@example.co" title="Any valid email"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+    <label asp-for="password" style="font-size: large; margin-top: 20px;">Password:</label>
+    <input asp-for="password" type="text" required @bind-value="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
   </fieldset>
-  <input type="button" value="Register">
-</form>
+  <input type="submit" value="Register" style="padding: 15px; font-size: x-large; border-radius: 15px;">
+</EditForm>
+
+<br><hr><br>
 
 <a href="../login">
-  <span>Already have an account? Click here to login</span>
+  <button style="font-size: large; padding: 15px; border-radius: 15px;">Already have an account? Click here to login</button>
 </a>
+
+@code {
+  string password = "";
+  HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = ""};
+
+  async void ValidFormSubmitted(EditContext editContext) {
+
+    IConfigurationRoot? config = new ConfigurationBuilder()
+      .SetBasePath(Directory.GetCurrentDirectory())
+      .AddJsonFile(path: "appsettings.json")
+      .Build();
+
+    string? connectionString = config.GetConnectionString(name: "Default");
+
+    Npgsql.NpgsqlDataSource? dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+
+    HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+
+    if(U_Ctrlr.CheckIfUsernameExists(userDto.Username) == null) {
+
+      string passwordHash = new PasswordHasher<HolidayPlanner.DTOs.UserDto>().HashPassword(userDto, password);
+
+      PasswordVerificationResult hashVarificationResult = new  PasswordHasher<HolidayPlanner.DTOs.UserDto>().VerifyHashedPassword(userDto, passwordHash, password);
+    
+      switch (hashVarificationResult) {
+
+        case PasswordVerificationResult.Failed:
+          Console.WriteLine(value: "Password failed to properly hash");
+          break;
+
+        case PasswordVerificationResult.Success:
+          Console.WriteLine(value: "Password successfully hashed");
+          Console.WriteLine(value: $"{userDto.Id}\n{userDto.Name}\n{userDto.Username}\n{password}");
+          await U_Ctrlr.CreateUser(userDto, passwordHash);
+          Navigation.NavigateTo(uri: "/login");
+          break;
+
+        case PasswordVerificationResult.SuccessRehashNeeded:
+          Console.WriteLine(value: "Password ok but should be rehashed and updated.");
+          await U_Ctrlr.CreateUser(userDto, passwordHash);
+          Navigation.NavigateTo(uri: "/login");
+          break;
+
+        default:
+          throw new ArgumentOutOfRangeException();
+      }
+    } else {
+      Console.WriteLine(value: "An account with that username already exists");
+    }
+  }
+}

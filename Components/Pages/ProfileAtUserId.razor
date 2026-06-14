@@ -1,0 +1,92 @@
+@page "/profile/{Id}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Identity
+@inject NavigationManager Navigation
+
+<PageTitle>Profile</PageTitle>
+
+<h1>Profile Settings</h1>
+
+<a href="../updateUser">
+  <button style="font-size: large; padding: 15px; border-radius: 15px;">Update account</button>
+</a>
+
+<hr><br>
+@* sytle attributes can be deleted *@
+<EditForm Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="EditAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
+
+    <label asp-for="name" style="font-size: large;">Name:</label>
+    <input asp-for="name" type="text" title="Type either your full name or your initials" required @bind-value="newName"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+    <label asp-for="newPassword" style="font-size: large; margin-top: 20px;">New Password:</label>
+    <input asp-for="newPassword" type="text" required @bind-value="newPassword" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+    <label asp-for="confirmNewPassword" style="font-size: large; margin-top: 20px;">Confirm New Password:</label>
+    <input asp-for="confirmNewPassword" type="text" required @bind-value="confirmNewPassword" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+  </fieldset>
+  <input type="hidden" @bind-value="Id">
+  @* <input type="hidden" @bind-value="Username"> *@
+  <input type="submit" value="Update" style="padding: 15px; font-size: x-large; border-radius: 15px;">
+</EditForm>
+
+@code {
+  [Parameter] public string? Id { get; set; }
+  string newPassword = "";
+  string confirmNewPassword = "";
+
+  string Username = "";
+  string newName = "";
+
+  HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = ""}; // I hate that I need this. Do I need this?
+
+  async void ValidFormSubmitted(EditContext editContext) {
+
+    IConfigurationRoot? config = new ConfigurationBuilder()
+      .SetBasePath(Directory.GetCurrentDirectory())
+      .AddJsonFile(path: "appsettings.json")
+      .Build();
+
+    string? connectionString = config.GetConnectionString(name: "Default");
+
+    Npgsql.NpgsqlDataSource? dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+
+    HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+
+    Task<HolidayPlanner.DTOs.UserDto>? userDtwo = U_Ctrlr.GetUserById(Id);
+
+    userDto = userDtwo.Result;
+    userDto.Name = newName;
+
+    string passwordHash = new PasswordHasher<HolidayPlanner.DTOs.UserDto>().HashPassword(userDto, newPassword);
+
+    PasswordVerificationResult hashVarificationResult = new  PasswordHasher<HolidayPlanner.DTOs.UserDto>().VerifyHashedPassword(userDto, passwordHash, newPassword);
+
+    if(newPassword == confirmNewPassword) {
+      switch (hashVarificationResult) {
+
+        case PasswordVerificationResult.Failed:
+          Console.WriteLine(value: "Your new password failed to properly hash");
+          break;
+
+        case PasswordVerificationResult.Success:
+          Console.WriteLine(value: "Your new password successfully hashed");
+          Console.WriteLine(value: $"{userDto.Id}\n{userDto.Name}\n{userDto.Username}\n{newPassword}");
+          await U_Ctrlr.UpdateUser(userDto, passwordHash);
+          break;
+
+        case PasswordVerificationResult.SuccessRehashNeeded:
+          Console.WriteLine(value: "Your new password successfully hashed but should be rehashed and updated.");
+          await U_Ctrlr.UpdateUser(userDto, passwordHash);
+          break;
+
+        default:
+          throw new ArgumentOutOfRangeException();
+      }
+    }
+  }
+}
