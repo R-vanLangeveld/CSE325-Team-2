@@ -7,16 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// var config = new ConfigurationBuilder()
-//     .SetBasePath(Directory.GetCurrentDirectory())
-//     .AddJsonFile("appsettings.json")
-//     .Build();
-
-// var connectionString = config.GetConnectionString("Default");
-
-// var dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
-// builder.Services.AddSingleton(dataSource);
-
 string connectionString = ConfigurationHelper.GetConnectionString("Default");
 await using var conn = new NpgsqlConnection(connectionString);
 await conn.OpenAsync();
