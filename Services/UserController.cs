@@ -21,11 +21,36 @@ public class UsersController : Controller {
 	// Gets the Name and Username of a user from the Users table of the database
 	[HttpGet("{id}")]
 	public async Task<UserDto> GetUserById(string id) {
+
+		string connectionString = ConfigurationHelper.GetConnectionString("Default");
+
+		try {
+			await using var dataSource = NpgsqlDataSource.Create(connectionString);
+			await using var cmd = dataSource.CreateCommand("SELECT \"Id\", \"Name\", \"Username\" FROM \"Users\" WHERE \"Id\" = @id");
+
+			using var reader = await cmd.ExecuteReaderAsync();
+			var userDtos = new List<UserDto>();
+
+			while (await reader.ReadAsync()) {
+				var userId = reader.GetInt32(0);
+				var name = reader.GetString(1);
+				var username = reader.GetString(2);
+
+				var dto = new UserDto { Id = userId, Name = name, Username = username };
+
+				userDtos.Add(dto);
+			}
+		} catch (NpgsqlException ex) {
+			Console.WriteLine($"Error: {ex.Message}");
+		}
+
+
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
+		int Id = Convert.ToInt32(id);
 
 		command.CommandText = "SELECT \"Id\", \"Name\", \"Username\" FROM \"Users\" WHERE \"Id\" = @id";
-		command.Parameters.AddWithValue("id", id);
+		command.Parameters.AddWithValue("id", Id);
 
 		var result = await command.ExecuteReaderAsync();
 		var user = new List<UserDto>();
@@ -55,28 +80,56 @@ public class UsersController : Controller {
 		return user[0];
 	}
 
-	// Ryndee: CheckIfUsernameExists will be called before CreateUser and before the user is allowed to log in. Like this: 
-	/* if(UserController.CheckIfUsernameExists(username) == false) {
-		UserController.CreateUser(userDto); // Create user
-		UserController.Login(password); // Login
-	} */
-
 	// Checks if the inputted username has an account
-	public async Task<int?> CheckIfUsernameExists(string Username) {
-		await using var connection = await _dataSource.OpenConnectionAsync();
-		await using var command = connection.CreateCommand();
+	public async Task<UserDto>/*Task<bool>*/ CheckIfUsernameExists(string Username) {
 
-		command.CommandText = "SELECT \"Username\", \"Id\" FROM \"Users\" WHERE \"Username\" = @username";
-		command.Parameters.AddWithValue("username", Username);
+		string connectionString = ConfigurationHelper.GetConnectionString("Default");
 
-		var result = await command.ExecuteReaderAsync();
-		var user = new List<UserDto>();
+		// try {
+			await using var dataSource = NpgsqlDataSource.Create(connectionString);
+			await using var cmd = dataSource.CreateCommand("SELECT \"Username\" FROM \"Users\" WHERE \"Username\" = @username");
 
-		while (await result.ReadAsync()) {
-			user.Add(MapToDto(result));
-		}
+			cmd.Parameters.AddWithValue("@username", Username);
 
-		return user[0].Id;
+			using var reader = await cmd.ExecuteReaderAsync();
+			var userDtos = new List<UserDto>();
+
+			while (await reader.ReadAsync()) {
+				var username = reader.GetString(0);
+
+				var dto = new UserDto { Name = "name", Username = username };
+
+				userDtos.Add(dto);
+			}
+			return userDtos[0];
+
+		// } catch (NpgsqlException ex) {
+		// 	Console.WriteLine($"Error: {ex.Message}");
+		// }
+		// return userDtos[0];
+
+		// await using var connection = await _dataSource.OpenConnectionAsync();
+		// await using var command = connection.CreateCommand();
+
+		// command.CommandText = "SELECT \"Username\" FROM \"Users\" WHERE \"Username\" = @username";
+		// command.Parameters.AddWithValue("username", Username);
+
+		// var result = await command.ExecuteReaderAsync();
+		// var user = new List<UserDto>();
+
+		// while (await result.ReadAsync()) {
+		// 	user.Add(MapToDto(result));
+		// }
+
+		// // if (user[0].Username == Username) {
+		// // 	Console.WriteLine(value: $"usernames same? {user[0].Username} {Username}");
+		// // 	return true;
+		// // } else {
+		// // 	Console.WriteLine(value: $"usernames same? {user[0].Username} {Username}");
+		// // 	return false;
+		// // }
+		// return user[0];
+
 	}
 
 	// Creates a new user to the Users table of the database
@@ -100,10 +153,9 @@ public class UsersController : Controller {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
 
-		command.CommandText = "UPDATE \"Users\" SET \"Name\" = @name, \"PasswordHash\" = @password WHERE \"Id\" = @id AND \"Username\" = @username";
+		command.CommandText = "UPDATE \"Users\" SET \"Name\" = @name, \"PasswordHash\" = @password WHERE \"Id\" = @id";
 		command.Parameters.AddWithValue("id", user.Id);
 		command.Parameters.AddWithValue("name", user.Name);
-		command.Parameters.AddWithValue("username", user.Username);
 		command.Parameters.AddWithValue("password", password);
 
 		var rowsAffected = await command.ExecuteNonQueryAsync();
@@ -116,12 +168,13 @@ public class UsersController : Controller {
 	}
 
 	// Deletes a user from the Users table of the database
-  public async Task<IActionResult> DeleteUser(int id) {
+  public async Task<IActionResult> DeleteUser(UserDto user) {
 		await using var connection = await _dataSource.OpenConnectionAsync();
 		await using var command = connection.CreateCommand();
 
-		command.CommandText = "DELETE FROM \"Users\" WHERE \"Id\" = @id";
-		command.Parameters.AddWithValue("id", id);
+		command.CommandText = "DELETE FROM \"Users\" WHERE \"Id\" = @id AND \"Username\" = @username";
+		command.Parameters.AddWithValue("id", user.Id);
+		command.Parameters.AddWithValue("username", user.Username);
 
 		var rowsAffected = await command.ExecuteNonQueryAsync();
 

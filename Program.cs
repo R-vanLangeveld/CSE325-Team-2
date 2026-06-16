@@ -1,4 +1,5 @@
 using CSE325_Team_2.Components;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,15 +7,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// var config = new ConfigurationBuilder()
+//     .SetBasePath(Directory.GetCurrentDirectory())
+//     .AddJsonFile("appsettings.json")
+//     .Build();
 
-var rawConn = builder.Configuration["DATABASE_URL"] 
-    ?? builder.Configuration.GetConnectionString("Default") 
-    ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+// var connectionString = config.GetConnectionString("Default");
 
-var connectionString = ConvertToNpgsqlConnectionString(rawConn);
+// var dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+// builder.Services.AddSingleton(dataSource);
 
-var dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
-builder.Services.AddSingleton(dataSource);
+string connectionString = ConfigurationHelper.GetConnectionString("Default");
+await using var conn = new NpgsqlConnection(connectionString);
+await conn.OpenAsync();
+
+Console.WriteLine($"The PostgreSQL version: {conn.PostgreSqlVersion}");
+
+
 builder.Services.AddScoped<HolidayPlanner.Data.HolidayPlannerContext>();
 
 var app = builder.Build();
@@ -36,24 +45,3 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
-
-static string ConvertToNpgsqlConnectionString(string input)
-{
-    if (!input.StartsWith("postgres://") && !input.StartsWith("postgresql://"))
-        return input;
-
-    var uri = new Uri(input);
-    var userInfo = uri.UserInfo.Split(':');
-    var database = uri.AbsolutePath.TrimStart('/').Split('?')[0];
-
-    return new Npgsql.NpgsqlConnectionStringBuilder
-    {
-        Host = uri.Host,
-        Port = uri.Port > 0 ? uri.Port : 5432,
-        Database = database,
-        Username = userInfo[0],
-        Password = userInfo.Length > 1 ? userInfo[1] : string.Empty,
-        SslMode = Npgsql.SslMode.Require,
-        TrustServerCertificate = true
-    }.ConnectionString;
-}

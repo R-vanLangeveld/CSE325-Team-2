@@ -1,20 +1,23 @@
 @page "/login"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Identity
 @inject NavigationManager Navigation
-@using HolidayPlanner.Services
+@using Npgsql
+@using System
+@using System.Security.Cryptography
+@using System.Text
 
 <PageTitle>Login</PageTitle>
 
-@* <h1>Login</h1> *@
+<h1>Login</h1>
+
 <br><br>
-@* sytle attributes can be deleted *@
+
 <EditForm Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="LoginUser" method="post" style="display: flex; flex-direction: column; align-items: strech;">
   <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 10px; border-radius: 15px;">
     <legend style="font-size: x-large;">Login</legend>
 
     <label for="username" style="font-size: large;">Username:</label>
-    <input type="email" required @bind-value="userDto.Username" placeholder="exapmleEmail@example.co" title="Any valid email"
+    <input type="email" required @bind-value="Username" placeholder="exapmleEmail@example.co" title="Any valid email"
     style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
 
     <label for="password" style="font-size: large; margin-top: 20px;">Password:</label>
@@ -33,51 +36,65 @@
 
 @code {
   string password = "";
+  string Username { get; set; } = "";
+
   HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "placeholder", Username = ""};
 
-  void ValidFormSubmitted(EditContext editContext) {
+  async void ValidFormSubmitted(EditContext editContext) {
 
-    var config = new ConfigurationBuilder()
-      .SetBasePath(Directory.GetCurrentDirectory())
-      .AddJsonFile("appsettings.json")
-      .Build();
+    string connectionString = ConfigurationHelper.GetConnectionString(name: "Default");
 
-    var connectionString = config.GetConnectionString("Default");
+		try {
+			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
+			await using NpgsqlCommand cmd = dataSource.CreateCommand(commandText: "SELECT \"Id\", \"Username\", \"PasswordHash\" FROM \"Users\" WHERE \"Username\" = @username");
 
-    var dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+			cmd.Parameters.AddWithValue(parameterName: "@username", Username);
 
-    HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
-    var sfsef = U_Ctrlr.CheckIfUsernameExists(userDto.Username);
+			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync();
+      string passwordFromDB = "";
 
-    if(U_Ctrlr.CheckIfUsernameExists(userDto.Username) != null) {
-      var passwordFromDB = U_Ctrlr.GetPasswordHashByUsername(userDto.Username).Result.PasswordHash;
-      string passwordHash = new PasswordHasher<HolidayPlanner.DTOs.UserDto>().HashPassword(userDto, password);
+			while (await reader.ReadAsync()) {
+				int id = reader.GetInt32(ordinal: 0);
+				string username = reader.GetString(ordinal: 1);
+				passwordFromDB = reader.GetString(ordinal: 2);
+        userDto.Id = id;
+				userDto.Username = username;
+			}
 
-      PasswordVerificationResult hashVarificationResult = new  PasswordHasher<HolidayPlanner.DTOs.UserDto>().VerifyHashedPassword(userDto, passwordFromDB, password);
+      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
 
-      @* PasswordVerificationResult hashVarificationResult = new  PasswordHasher<HolidayPlanner.DTOs.UserDto>().VerifyHashedPassword(userDto, hashedPassword: passwordHash, providedPassword: "Placeh0lder"); *@
+      if(userDto.Username == Username) {
+        string sSourceData;
+        byte[] tmpSource;
+        byte[] tmpHash;
 
-      switch (hashVarificationResult) {
+        sSourceData = password;
+        tmpSource = ASCIIEncoding.ASCII.GetBytes(sSourceData);
+        tmpHash = MD5.Create().ComputeHash(tmpSource);
 
-        case PasswordVerificationResult.Failed:
-          Console.WriteLine(value: "Your password or username is incorrect.");
-          break;
+        string passwordHash = ByteArrayToString(tmpHash);
 
-        case PasswordVerificationResult.Success:
+        static string ByteArrayToString(byte[] arrInput) {
+          int i;
+          StringBuilder sOutput = new StringBuilder(arrInput.Length);
+          for (i=0;i < arrInput.Length; i++) {
+            sOutput.Append(arrInput[i].ToString(format: "X2"));
+          }
+          return sOutput.ToString();
+        }
+
+        if (passwordHash == passwordFromDB) {
           Console.WriteLine(value: "Correct Password");
           Navigation.NavigateTo(uri: $"/profile/{userDto.Id}");
-          break;
-
-        case PasswordVerificationResult.SuccessRehashNeeded:
-          Console.WriteLine(value: "Correct Password but should be rehashed and updated.");
-          Navigation.NavigateTo(uri: $"/profile/{userDto.Id}");
-          break;
-
-        default:
-          throw new ArgumentOutOfRangeException();
+        } else {
+          Console.WriteLine(value: "Your password or username is incorrect.");
+        }
+      } else {
+        Console.WriteLine(value: "Your password or username is incorrect.");
       }
-    } else {
-      Console.WriteLine(value: "Your password or username is incorrect.");
-    }
+		} catch (NpgsqlException ex) {
+			Console.WriteLine(value: $"Error: {ex.Message}");
+		}
+
   }
 }

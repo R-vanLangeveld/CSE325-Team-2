@@ -1,14 +1,19 @@
 @page "/registration"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Identity
 @inject NavigationManager Navigation
+@using Npgsql
+@using HolidayPlanner.DTOs
+@using System
+@using System.Security.Cryptography
+@using System.Text
 
 <PageTitle>Registration</PageTitle>
 
-@* <h1>Registration</h1> *@
+<h1>Registration</h1>
+
 <br><br>
-@* sytle attributes can be deleted *@
-<EditForm Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="RegisterUser" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+
+<EditForm Model="@userDto" OnValidSubmit="@RegisterUser" FormName="RegisterUser" method="post" style="display: flex; flex-direction: column; align-items: strech;">
   <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 10px; border-radius: 15px;">
     <legend style="font-size: x-large;">Register</legend>
 
@@ -17,7 +22,7 @@
     style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
 
     <label asp-for="username" style="font-size: large; margin-top: 20px;">Username:</label>
-    <input asp-for="username" type="email" required @bind-value="userDto.Username" placeholder="exapmleEmail@example.co" title="Any valid email"
+    <input asp-for="username" type="email" required @bind-value="Username" placeholder="exapmleEmail@example.co" title="Any valid email"
     style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
 
     <label asp-for="password" style="font-size: large; margin-top: 20px;">Password:</label>
@@ -36,51 +41,60 @@
 
 @code {
   string password = "";
+  string Username { get; set; } = "";
   HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = ""};
 
-  async void ValidFormSubmitted(EditContext editContext) {
+  async void RegisterUser(EditContext editContext) {
 
-    IConfigurationRoot? config = new ConfigurationBuilder()
-      .SetBasePath(Directory.GetCurrentDirectory())
-      .AddJsonFile(path: "appsettings.json")
-      .Build();
+    string connectionString = ConfigurationHelper.GetConnectionString(name: "Default");
 
-    string? connectionString = config.GetConnectionString(name: "Default");
+    UserDto dto = new UserDto { Name = "name", Username = "username" };
 
-    Npgsql.NpgsqlDataSource? dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+		try {
+			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
+			await using NpgsqlCommand cmd = dataSource.CreateCommand(commandText: "SELECT \"Username\" FROM \"Users\" WHERE \"Username\" = @username");
 
-    HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+			cmd.Parameters.AddWithValue(parameterName: "@username", Username);
 
-    if(U_Ctrlr.CheckIfUsernameExists(userDto.Username) == null) {
+			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync();
 
-      string passwordHash = new PasswordHasher<HolidayPlanner.DTOs.UserDto>().HashPassword(userDto, password);
+			while (await reader.ReadAsync()) {
+				string username = reader.GetString(ordinal: 0);
+				dto.Username = username;
+			}
 
-      PasswordVerificationResult hashVarificationResult = new  PasswordHasher<HolidayPlanner.DTOs.UserDto>().VerifyHashedPassword(userDto, passwordHash, password);
-    
-      switch (hashVarificationResult) {
+      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
 
-        case PasswordVerificationResult.Failed:
-          Console.WriteLine(value: "Password failed to properly hash");
-          break;
+      if(dto.Username != Username) {
+        userDto.Username = Username;
 
-        case PasswordVerificationResult.Success:
-          Console.WriteLine(value: "Password successfully hashed");
-          Console.WriteLine(value: $"{userDto.Id}\n{userDto.Name}\n{userDto.Username}\n{password}");
-          await U_Ctrlr.CreateUser(userDto, passwordHash);
-          Navigation.NavigateTo(uri: "/login");
-          break;
+        string sSourceData;
+        byte[] tmpSource;
+        byte[] tmpHash;
 
-        case PasswordVerificationResult.SuccessRehashNeeded:
-          Console.WriteLine(value: "Password ok but should be rehashed and updated.");
-          await U_Ctrlr.CreateUser(userDto, passwordHash);
-          Navigation.NavigateTo(uri: "/login");
-          break;
+        sSourceData = password;
+        tmpSource = ASCIIEncoding.ASCII.GetBytes(sSourceData);
+        tmpHash = MD5.Create().ComputeHash(tmpSource);
 
-        default:
-          throw new ArgumentOutOfRangeException();
+        string passwordHash = ByteArrayToString(tmpHash);
+
+        static string ByteArrayToString(byte[] arrInput) {
+          int i;
+          StringBuilder sOutput = new StringBuilder(arrInput.Length);
+          for (i=0;i < arrInput.Length; i++) {
+            sOutput.Append(arrInput[i].ToString(format: "X2"));
+          }
+          return sOutput.ToString();
+        }
+
+        await U_Ctrlr.CreateUser(userDto, passwordHash);
+        Navigation.NavigateTo(uri: "/login");
       }
-    } else {
-      Console.WriteLine(value: "An account with that username already exists");
-    }
+      else {
+        @* Console.WriteLine(value: "An account with that username already exists"); *@
+      }
+		} catch (NpgsqlException ex) {
+			Console.WriteLine(value: $"Error: {ex.Message}");
+		}
   }
 }

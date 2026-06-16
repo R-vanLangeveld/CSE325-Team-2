@@ -1,20 +1,20 @@
 @page "/profile/{Id}"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Identity
 @inject NavigationManager Navigation
+@using Npgsql
+@using System
+@using System.Security.Cryptography
+@using System.Text
 
 <PageTitle>Profile</PageTitle>
 
 <h1>Profile Settings</h1>
 
-<a href="../updateUser">
-  <button style="font-size: large; padding: 15px; border-radius: 15px;">Update account</button>
-</a>
-
 <hr><br>
-@* sytle attributes can be deleted *@
-<EditForm Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="EditAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+
+<EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" FormName="EditAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
   <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
+    <legend style="font-size: x-large;">Update your account</legend>
 
     <label asp-for="name" style="font-size: large;">Name:</label>
     <input asp-for="name" type="text" title="Type either your full name or your initials" required @bind-value="newName"
@@ -30,63 +30,109 @@
 
   </fieldset>
   <input type="hidden" @bind-value="Id">
-  @* <input type="hidden" @bind-value="Username"> *@
   <input type="submit" value="Update" style="padding: 15px; font-size: x-large; border-radius: 15px;">
 </EditForm>
+
+<br><br><br><hr><br><br><br>
+
+<EditForm Model="@deleteUserDto" OnValidSubmit="@DeleteAccount" FormName="DeleteAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
+    <legend style="font-size: x-large;">Delete your account</legend>
+
+    <label asp-for="toDelete" style="font-size: large;">Username:</label>
+    <input asp-for="toDelete" type="email" title="Type your Username here" required @bind-value="toDelete"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+    <label asp-for="confirmToDelete" style="font-size: large; margin-top: 20px;">Confirm Username:</label>
+    <input asp-for="confirmToDelete" type="email" title="Type your Username here for confirmation" required @bind-value="confirmToDelete"
+    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+
+    <div style="margin-top: 30px;">
+      <input asp-for="comfirmDelete" type="checkbox" required name="comfirmDelete">
+      <label asp-for="comfirmDelete" style="font-size: large;">Click me to further confirm that you want to delete your account</label>
+    </div>
+
+  </fieldset>
+  <input type="hidden" @bind-value="Id">
+  <input type="submit" value="Delete" style="padding: 15px; font-size: x-large; border-radius: 15px;">
+</EditForm>
+
+<br><br><br><br><br>
 
 @code {
   [Parameter] public string? Id { get; set; }
   string newPassword = "";
   string confirmNewPassword = "";
+  public string newName = "";
+  string? toDelete, confirmToDelete, comfirmDelete;
 
-  string Username = "";
-  string newName = "";
+  HolidayPlanner.DTOs.UserDto newUserDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = "" };
 
-  HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = ""}; // I hate that I need this. Do I need this?
+  HolidayPlanner.DTOs.UserDto deleteUserDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = "" };
 
-  async void ValidFormSubmitted(EditContext editContext) {
+  async void DeleteAccount(EditContext editContext) {
+    string connectionString = ConfigurationHelper.GetConnectionString(name: "Default");
 
-    IConfigurationRoot? config = new ConfigurationBuilder()
-      .SetBasePath(Directory.GetCurrentDirectory())
-      .AddJsonFile(path: "appsettings.json")
-      .Build();
+		try {
+			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
 
-    string? connectionString = config.GetConnectionString(name: "Default");
+      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
 
-    Npgsql.NpgsqlDataSource? dataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
-
-    HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
-
-    Task<HolidayPlanner.DTOs.UserDto>? userDtwo = U_Ctrlr.GetUserById(Id);
-
-    userDto = userDtwo.Result;
-    userDto.Name = newName;
-
-    string passwordHash = new PasswordHasher<HolidayPlanner.DTOs.UserDto>().HashPassword(userDto, newPassword);
-
-    PasswordVerificationResult hashVarificationResult = new  PasswordHasher<HolidayPlanner.DTOs.UserDto>().VerifyHashedPassword(userDto, passwordHash, newPassword);
-
-    if(newPassword == confirmNewPassword) {
-      switch (hashVarificationResult) {
-
-        case PasswordVerificationResult.Failed:
-          Console.WriteLine(value: "Your new password failed to properly hash");
-          break;
-
-        case PasswordVerificationResult.Success:
-          Console.WriteLine(value: "Your new password successfully hashed");
-          Console.WriteLine(value: $"{userDto.Id}\n{userDto.Name}\n{userDto.Username}\n{newPassword}");
-          await U_Ctrlr.UpdateUser(userDto, passwordHash);
-          break;
-
-        case PasswordVerificationResult.SuccessRehashNeeded:
-          Console.WriteLine(value: "Your new password successfully hashed but should be rehashed and updated.");
-          await U_Ctrlr.UpdateUser(userDto, passwordHash);
-          break;
-
-        default:
-          throw new ArgumentOutOfRangeException();
+      if (toDelete == confirmToDelete && toDelete != "" && toDelete != null) {
+        deleteUserDto.Username = toDelete;
+        deleteUserDto.Id = Convert.ToInt32(Id);
+        await U_Ctrlr.DeleteUser(deleteUserDto);
+        Navigation.NavigateTo(uri: "/profile");
       }
-    }
+		} catch (NpgsqlException ex) {
+			Console.WriteLine(value: $"Error: {ex.Message}");
+		}
+  }
+
+  async void UpdateAccount(EditContext editContext) {
+    string connectionString = ConfigurationHelper.GetConnectionString(name: "Default");
+
+		try {
+			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
+
+      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+
+      newUserDto.Name = newName;
+
+      string sSourceData;
+      byte[] tmpSource;
+      byte[] tmpHash;
+
+      sSourceData = newPassword;
+      tmpSource = ASCIIEncoding.ASCII.GetBytes(sSourceData);
+      tmpHash = MD5.Create().ComputeHash(tmpSource);
+
+      string passwordHash = ByteArrayToString(tmpHash);
+
+      static string ByteArrayToString(byte[] arrInput) {
+        int i;
+        StringBuilder sOutput = new StringBuilder(arrInput.Length);
+        for (i=0;i < arrInput.Length; i++) {
+          sOutput.Append(arrInput[i].ToString(format: "X2"));
+        }
+        return sOutput.ToString();
+      }
+
+      if(newPassword == confirmNewPassword) {
+        Console.WriteLine(value: $"{newPassword} = {confirmNewPassword}");
+
+        await using NpgsqlCommand cmd = dataSource.CreateCommand(commandText: "UPDATE \"Users\" SET \"Name\" = @name, \"PasswordHash\" = @password WHERE \"Id\" = @id");
+
+        cmd.Parameters.AddWithValue(parameterName: "@id", Convert.ToInt32(Id));
+        cmd.Parameters.AddWithValue(parameterName: "@name", newUserDto.Name);
+        cmd.Parameters.AddWithValue(parameterName: "@password", passwordHash);
+
+        await cmd.ExecuteNonQueryAsync();
+
+        @* Console.WriteLine(value: $"{newUserDto.Id}\n{newUserDto.Name}\n{newUserDto.Username}\n{newPassword}"); *@
+      }
+		} catch (NpgsqlException ex) {
+			Console.WriteLine(value: $"Error: {ex.Message}");
+		}
   }
 }
