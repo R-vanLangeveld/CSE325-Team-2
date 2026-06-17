@@ -6,13 +6,11 @@ Holiday Planner is a web application designed to simplify holiday event planning
 
 The goal of this project is to reduce the time spent coordinating logistics so users can focus more on creating meaningful experiences and spending quality time together.
 
----
 
 ## Purpose
 
 Planning holiday events often involves coordinating schedules, assigning responsibilities, organizing participants, and managing event details. Holiday Planner centralizes these activities into a single platform where users can collaborate efficiently and keep all event information organized.
 
----
 
 ## Features
 
@@ -63,7 +61,6 @@ Planning holiday events often involves coordinating schedules, assigning respons
 * Eliminate manual matching
 * Create fair and unbiased pairings
 
----
 
 ## Target Audience
 
@@ -76,7 +73,7 @@ Holiday Planner is designed for:
 * Clubs and organizations
 * Anyone coordinating events involving multiple participants
 
----
+
 
 ## Technologies Used
 
@@ -99,7 +96,7 @@ Holiday Planner is designed for:
 
 * User Login and Registration System
 
----
+
 
 ## Database Design
 
@@ -131,7 +128,7 @@ Holiday Planner is designed for:
 | Description | Task description |
 | Status      | Task progress    |
 
----
+
 
 ## Project Scope
 
@@ -153,7 +150,7 @@ Holiday Planner is designed for:
 * Collection of sensitive personal information
 * Social media integration
 
----
+
 
 ## Installation
 
@@ -207,7 +204,7 @@ Application will run locally on:
 http://localhost:5032
 ```
 
----
+
 
 ## Usage
 
@@ -222,7 +219,7 @@ http://localhost:5032
 9. Review the event summary.
 10. Enjoy your holiday gathering.
 
----
+
 
 ## Future Enhancements
 
@@ -235,7 +232,7 @@ http://localhost:5032
 * Real-time notifications
 * Multiple holiday templates
 
----
+
 
 ## Project Links
 
@@ -247,7 +244,7 @@ https://github.com/R-vanLangeveld/CSE325-Team-2
 
 https://trello.com/b/3SBd0Nyl/project
 
----
+
 
 ## Authors
 
@@ -255,7 +252,7 @@ Holiday Planner Development Team
 
 Developed as part of the CSE 325 Software Engineering Project.
 
----
+
 
 ## Reflection
 
