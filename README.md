@@ -156,52 +156,51 @@ Holiday Planner is designed for:
 
 ### Prerequisites
 
-* Node.js
-* PostgreSQL
-* npm
-
+.NET 8 SDK
+A Neon PostgreSQL database (or any PostgreSQL instance)
 ### Clone Repository
-
+ 
 ```bash
 git clone https://github.com/R-vanLangeveld/CSE325-Team-2.git
 ```
-
+ 
 ### Navigate to Project Folder
-
+ 
 ```bash
 cd CSE325-Team-2
 ```
-
-### Install Dependencies
-
-```bash
-npm install
-```
-
+ 
 ### Configure Database
-
-Create a PostgreSQL database and update the environment variables with your database credentials.
-
-Example:
-
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=holidayplanner
-DB_USER=postgres
-DB_PASSWORD=yourpassword
+ 
+Create an `appsettings.Development.json` file in the project root and add your Neon PostgreSQL connection string:
+ 
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=your-neon-host;Port=5432;Database=holidayplanner;Username=your_user;Password=your_password;SSL Mode=Require"
+  }
+}
 ```
-
-### Start Application
-
+ 
+> **Note:** Do not commit `appsettings.Development.json` to source control. It is listed in `.gitignore` to protect credentials.
+ 
+### Apply Database Migrations
+ 
 ```bash
-npm start
+dotnet ef database update
 ```
-
+ 
+### Start Application
+ 
+```bash
+dotnet run
+```
+ 
 Application will run locally on:
-
+ 
 ```text
-http://localhost:5032
+https://localhost:5032
+```
 ```
 
 
