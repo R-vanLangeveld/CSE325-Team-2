@@ -269,37 +269,39 @@
     }
 </div>
 
+
 @code {
     [Parameter]
     public int id { get; set; }
 
-    int userId;
-    string username = string.Empty;
-    string name = string.Empty;
-    bool isLoading = true;
+    private int userId;
+    private string username = string.Empty;
+    private string name = string.Empty;
+    private bool isLoading = true;
+    private bool isProcessing = false; 
 
-    PlanDto? plan;
-    List<EventTaskDto> tasks = new();
+    private PlanDto? plan;
+    private List<EventTaskDto> tasks = new();
 
-    // Collaborator
-    bool addingCollaborator = false;
-    string newCollaboratorUsername = string.Empty;
+    // Collaborator State
+    private bool addingCollaborator = false;
+    private string newCollaboratorUsername = string.Empty;
 
-    // Invitee
-    bool addingInvitee = false;
-    string newInvitee = string.Empty;
+    // Invitee State
+    private bool addingInvitee = false;
+    private string newInvitee = string.Empty;
 
-    // Add Task
-    bool addingTask = false;
-    string newTaskName = string.Empty;
-    string newTaskDescription = string.Empty;
-    string newTaskAssignee = string.Empty;
+    // Add Task State
+    private bool addingTask = false;
+    private string newTaskName = string.Empty;
+    private string newTaskDescription = string.Empty;
+    private string newTaskAssignee = string.Empty;
 
-    // Edit Task
-    int editingTaskId = -1;
-    string editTaskName = string.Empty;
-    string editTaskDescription = string.Empty;
-    string editTaskAssignee = string.Empty;
+    // Edit Task State
+    private int editingTaskId = -1;
+    private string editTaskName = string.Empty;
+    private string editTaskDescription = string.Empty;
+    private string editTaskAssignee = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -319,10 +321,7 @@
                     username = userNameClaim.Value;
                     name = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
                     
-                    await LoadData();
-                    
-                    isLoading = false;
-                    StateHasChanged();
+                    await ExecuteSafeActionAsync(LoadData);
                 }
                 else
                 {
@@ -336,61 +335,71 @@
         }
     }
 
-    // --- ALL HTTP & CONTROLLER CALLS REPLACED WITH SERVICE CALLS ---
+    // Helper wrapper to safely handle processing locks and automated thread state refreshing
+    private async Task ExecuteSafeActionAsync(Func<Task> action)
+    {
+        if (isProcessing) return;
+        try
+        {
+            isProcessing = true;
+            await action();
+        }
+        finally
+        {
+            isLoading = false;
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
 
     private async Task LoadData()
     {
-        // Call the service directly instead of the Controller or HTTP
-        var plansResponse = await PlanService.GetPlansByUserAsync(userId);
-        if (plansResponse != null)
-            plan = plansResponse.FirstOrDefault(p => p.Id == id);
-
-        var tasksResponse = await TaskService.GetTasksByPlanIdAsync(id);
-        if (tasksResponse != null)
-            tasks = tasksResponse;
+        // Optimization: Use a tailored call instead of pulling the entire list of user plans
+        plan = await PlanService.GetPlanByIdAsync(id); 
+        tasks = await TaskService.GetTasksByPlanIdAsync(id) ?? new List<EventTaskDto>();
     }
 
-    private async Task ToggleTask(int taskId)
+    private Task ToggleTask(int taskId) => ExecuteSafeActionAsync(async () =>
     {
         await TaskService.ToggleTaskAsync(taskId);
         await LoadData();
-        StateHasChanged();
-    }
+    });
 
-    private async Task DeleteTask(int taskId)
+    private Task DeleteTask(int taskId) => ExecuteSafeActionAsync(async () =>
     {
         await TaskService.DeleteTaskAsync(taskId);
         await LoadData();
-        StateHasChanged();
-    }
+    });
 
-    private async Task DeletePlan()
+    private Task DeletePlan() => ExecuteSafeActionAsync(async () =>
     {
         await PlanService.DeletePlanAsync(id);
         Navigation.NavigateTo("/");
-    }
+    });
 
-    private async Task AddTask()
+    private Task AddTask() => ExecuteSafeActionAsync(async () =>
     {
+        if (string.IsNullOrWhiteSpace(newTaskName)) return;
+
         var newTask = new EventTaskDto
         {
-            Name = newTaskName,
-            Description = newTaskDescription,
-            Assignee = string.IsNullOrEmpty(newTaskAssignee) ? null : newTaskAssignee,
+            Name = newTaskName.Trim(),
+            Description = newTaskDescription?.Trim() ?? string.Empty,
+            Assignee = string.IsNullOrWhiteSpace(newTaskAssignee) ? null : newTaskAssignee.Trim(),
             IsCompleted = false,
             PlanId = id
         };
         
         await TaskService.AddTaskAsync(newTask);
         
+        // Reset Inputs
         newTaskName = string.Empty;
         newTaskDescription = string.Empty;
         newTaskAssignee = string.Empty;
         addingTask = false;
         
         await LoadData();
-        StateHasChanged();
-    }
+    });
 
     private void StartEditTask(EventTaskDto task)
     {
@@ -400,15 +409,20 @@
         editTaskAssignee = task.Assignee ?? string.Empty;
     }
 
-    private async Task SaveEditTask()
+    private Task SaveEditTask() => ExecuteSafeActionAsync(async () =>
     {
+        if (string.IsNullOrWhiteSpace(editTaskName)) return;
+
+        var currentTask = tasks.FirstOrDefault(t => t.Id == editingTaskId);
+        if (currentTask == null) return;
+
         var updated = new EventTaskDto
         {
             Id = editingTaskId,
-            Name = editTaskName,
-            Description = editTaskDescription,
-            Assignee = string.IsNullOrEmpty(editTaskAssignee) ? null : editTaskAssignee,
-            IsCompleted = tasks.First(t => t.Id == editingTaskId).IsCompleted,
+            Name = editTaskName.Trim(),
+            Description = editTaskDescription?.Trim() ?? string.Empty,
+            Assignee = string.IsNullOrWhiteSpace(editTaskAssignee) ? null : editTaskAssignee.Trim(),
+            IsCompleted = currentTask.IsCompleted,
             PlanId = id
         };
         
@@ -416,39 +430,34 @@
         
         editingTaskId = -1;
         await LoadData();
-        StateHasChanged();
-    }
+    });
 
-    private async Task AddCollaborator()
+    private Task AddCollaborator() => ExecuteSafeActionAsync(async () =>
     {
-        if (!string.IsNullOrEmpty(newCollaboratorUsername))
+        if (!string.IsNullOrWhiteSpace(newCollaboratorUsername))
         {
-            await PlanService.AddCollaboratorAsync(id, newCollaboratorUsername);
+            await PlanService.AddCollaboratorAsync(id, newCollaboratorUsername.Trim());
             await LoadData();
         }
-
         addingCollaborator = false;
         newCollaboratorUsername = string.Empty;
-        StateHasChanged();
-    }
+    });
 
-    private async Task RemoveInvitee(string invitee)
+    private Task RemoveInvitee(string invitee) => ExecuteSafeActionAsync(async () =>
     {
+        if (string.IsNullOrWhiteSpace(invitee)) return;
         await PlanService.RemoveInviteeAsync(id, invitee);
         await LoadData();
-        StateHasChanged();
-    }
+    });
 
-    private async Task AddInvitee()
+    private Task AddInvitee() => ExecuteSafeActionAsync(async () =>
     {
-        if (!string.IsNullOrEmpty(newInvitee))
+        if (!string.IsNullOrWhiteSpace(newInvitee))
         {
-            await PlanService.AddInviteeAsync(id, newInvitee);
+            await PlanService.AddInviteeAsync(id, newInvitee.Trim());
             await LoadData();
         }
-
         newInvitee = string.Empty;
         addingInvitee = false;
-        StateHasChanged();
-    }
+    });
 }
