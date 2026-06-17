@@ -1,4 +1,4 @@
-namespace HolidayPlanner.Model
+namespace CSE325_Team_2.Model
 {
     public class User
     {

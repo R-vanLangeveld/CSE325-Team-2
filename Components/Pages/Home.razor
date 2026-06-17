@@ -1,11 +1,12 @@
-﻿@page "/"
+@page "/"
 @rendermode InteractiveServer
-@using HolidayPlanner.Services
-@inject NavigationManager Navigation
-@inject UsersController UsersController
-@inject CustomAuthStateProvider AuthStateProvider
+@using CSE325_Team_2.Services
 @using System.Security.Claims
+@using CSE325_Team_2.DTOs
 
+@inject NavigationManager Navigation
+@inject CustomAuthStateProvider AuthStateProvider
+@inject PlanService PlanService
 
 <PageTitle>Holiday Planner</PageTitle>
 
@@ -26,69 +27,87 @@
       <line x1="3" y1="10" x2="21" y2="10"></line>
     </svg>
     Your Plans
-  </div>
 
-  <div class="card">
-    <div class="card-header">
-      <h2 class="card-title">Family Christmas 2026</h2>
-      <button class="delete-btn" aria-label="Delete plan">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
-      </button>
-    </div>
-    
-    <div class="card-details">
-      <div class="icon-text">
-        <svg viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
-        2026-12-25
-      </div>
-      <div class="icon-text">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-          <circle cx="12" cy="10" r="3"></circle>
-        </svg>
-        Grandma's House
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="card-footer">
-      <div class="icon-text">
-        <svg viewBox="0 0 24 24">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-        5 Guests
-      </div>
-      <div class="icon-text">
-        <svg viewBox="0 0 24 24">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-        1/3 Tasks
-      </div>
-    </div>
+    <button @onclick="AddPlan" class="add-btn" aria-label="Add new plan">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
   </div>
 </div>
 
+@if (isLoading)
+{
+    <p>Loading your plans...</p>
+}
+else
+{
+    @foreach (var plan in plans)
+    {
+        <div class="card" style="cursor: pointer;" @onclick="() => GoToPlan(plan.Id)">
+            <div class="card-header">
+                <h2 class="card-title">@plan.Name</h2>
+                <button class="delete-btn" aria-label="Delete plan" @onclick="() => DeletePlan(plan.Id)" @onclick:stopPropagation>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="card-details">
+                <div class="icon-text">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    @plan.Date.ToShortDateString()
+                </div>
+                <div class="icon-text">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    @plan.Description
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="card-footer">
+                <div class="icon-text">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    @* Added null checks in case Participants/Collaborators are empty *@
+                    @(plan.Participants?.Count ?? 0) Guests
+                </div>
+                <div class="icon-text">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    @(plan.Collaborators?.Count ?? 0) Tasks
+                </div>
+            </div>
+        </div>
+    }
+}
 
 @code {
     int userId;
     string username = string.Empty;
     string name = string.Empty;
     bool isLoading = true;
+    List<PlanDto> plans = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -98,7 +117,7 @@
             var user = authState.User;
 
             if (user.Identity?.IsAuthenticated == true)
-            {
+            { 
                 var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
                 var userNameClaim = user.FindFirst(ClaimTypes.Name);
 
@@ -107,6 +126,10 @@
                     userId = parsedUserId;
                     username = userNameClaim.Value;
                     name = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
+                    
+                    // Moved getAllPlans() here so it uses the parsed userId!
+                    await getAllPlans();
+                    
                     isLoading = false;
                     StateHasChanged();
                 }
@@ -126,5 +149,29 @@
     {
         await AuthStateProvider.Logout();
         Navigation.NavigateTo("/login");
+    }
+
+    private async Task AddPlan()
+    {
+        Navigation.NavigateTo("/plans/new");
+    }
+
+    private async Task getAllPlans()
+    {
+        // Using the PlanService directly!
+        plans = await PlanService.GetPlansByUserAsync(userId);
+    }
+
+    private async Task DeletePlan(int planId)
+    {
+        // Using the PlanService directly!
+        await PlanService.DeletePlanAsync(planId);
+        plans.RemoveAll(p => p.Id == planId);
+        StateHasChanged();
+    }
+
+    private void GoToPlan(int planId)
+    {
+        Navigation.NavigateTo($"/plans/{planId}");
     }
 }

@@ -12,7 +12,7 @@
 
 <hr><br>
 
-<EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" FormName="EditAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+<EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" style="display: flex; flex-direction: column; align-items: stretch;">
   <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
     <legend style="font-size: x-large;">Update your account</legend>
 
@@ -35,7 +35,7 @@
 
 <br><br><br><hr><br><br><br>
 
-<EditForm Model="@deleteUserDto" OnValidSubmit="@DeleteAccount" FormName="DeleteAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+<EditForm Model="@deleteUserDto" OnValidSubmit="@DeleteAccount" style="display: flex; flex-direction: column; align-items: stretch;">
   <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
     <legend style="font-size: x-large;">Delete your account</legend>
 
@@ -66,9 +66,9 @@
   public string newName = "";
   string? toDelete, confirmToDelete, comfirmDelete;
 
-  HolidayPlanner.DTOs.UserDto newUserDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = "" };
+  CSE325_Team_2.DTOs.UserDto newUserDto = new CSE325_Team_2.DTOs.UserDto { Name = "", Username = "" };
 
-  HolidayPlanner.DTOs.UserDto deleteUserDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = "" };
+  CSE325_Team_2.DTOs.UserDto deleteUserDto = new CSE325_Team_2.DTOs.UserDto { Name = "", Username = "" };
 
   async void DeleteAccount(EditContext editContext) {
     string connectionString = ConfigurationHelper.GetConnectionString(name: "Default");
@@ -76,7 +76,7 @@
 		try {
 			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
 
-      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+      CSE325_Team_2.Services.UsersController U_Ctrlr = new CSE325_Team_2.Services.UsersController(dataSource);
 
       if (toDelete == confirmToDelete && toDelete != "" && toDelete != null) {
         deleteUserDto.Username = toDelete;
@@ -95,7 +95,7 @@
 		try {
 			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
 
-      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+      CSE325_Team_2.Services.UsersController U_Ctrlr = new CSE325_Team_2.Services.UsersController(dataSource);
 
       newUserDto.Name = newName;
 

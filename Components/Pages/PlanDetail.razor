@@ -1,0 +1,454 @@
+@page "/plans/{id:int}"
+@rendermode InteractiveServer
+@using CSE325_Team_2.Services
+@using CSE325_Team_2.DTOs
+@using System.Security.Claims
+
+@inject NavigationManager Navigation
+@inject CustomAuthStateProvider AuthStateProvider
+
+@inject PlanService PlanService
+@inject EventTaskService TaskService
+
+<PageTitle>@(plan?.Name ?? "Plan Details")</PageTitle>
+
+<div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <!-- Back Navigation & Header Actions -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 5px; color: var(--tropical-teal); font-weight: 700;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="stroke-linecap: round; stroke-linejoin: round;">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Plans
+        </a>
+        @if (plan != null)
+        {
+            <button class="logout-btn" style="margin: 0; width: auto; background-color: rgba(239, 68, 68, 0.1); color: #ef4444;" @onclick="DeletePlan">
+                Delete Plan
+            </button>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div style="text-align: center; padding: 50px;">
+            <p>Loading plan details...</p>
+        </div>
+    }
+    else if (plan == null)
+    {
+        <div class="card" style="text-align: center; padding: 40px;">
+            <h2>Plan Not Found</h2>
+            <p>The plan you are looking for does not exist or you do not have permission to view it.</p>
+        </div>
+    }
+    else
+    {
+        <!-- Plan Overview Card -->
+        <div class="card" style="margin-bottom: 30px; padding: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1 style="margin: 0 0 10px 0; font-size: 2rem; font-weight: 800;">@plan.Name</h1>
+                    <p style="margin: 0 0 15px 0; color: var(--text-muted); font-size: 1.1rem;">@plan.Description</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--carrot-orange);">@plan.Price.ToString("C")</div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 4px;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        @plan.Date.ToShortDateString()
+                    </div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div style="display: flex; gap: 20px; color: var(--text-muted); font-size: 0.95rem;">
+                <div><strong>Created By:</strong> @plan.Creator.Name (@@@plan.Creator.Username)</div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 30px;">
+            
+            <!-- LEFT COLUMN: Tasks -->
+            <div>
+                <div class="section-title" style="justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 10px;">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 24px; height: 24px; color: var(--tropical-teal);">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Tasks
+                    </span>
+                    <button class="btn" style="padding: 5px 12px; font-size: 0.85rem;" @onclick="() => addingTask = !addingTask">
+                        @(addingTask ? "Cancel" : "+ Add Task")
+                    </button>
+                </div>
+
+                @if (addingTask)
+                {
+                    <div class="card" style="margin-bottom: 20px; padding: 20px;">
+                        <h3 style="margin-top: 0; margin-bottom: 15px;">Add New Task</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div>
+                                <label style="font-weight: 500; font-size: 0.9rem; display: block; margin-bottom: 5px;">Task Name</label>
+                                <input type="text" class="form-control" style="width: 100%; height: 2.5rem; padding: 5px 10px; border: 1px solid var(--input-border); border-radius: 8px;" @bind="newTaskName" placeholder="e.g. Buy groceries" />
+                            </div>
+                            <div>
+                                <label style="font-weight: 500; font-size: 0.9rem; display: block; margin-bottom: 5px;">Description</label>
+                                <textarea class="form-control" style="width: 100%; height: 4rem; padding: 8px 10px; border: 1px solid var(--input-border); border-radius: 8px;" @bind="newTaskDescription" placeholder="What needs to be done?"></textarea>
+                            </div>
+                            <div>
+                                <label style="font-weight: 500; font-size: 0.9rem; display: block; margin-bottom: 5px;">Assignee (Optional)</label>
+                                <input type="text" class="form-control" style="width: 100%; height: 2.5rem; padding: 5px 10px; border: 1px solid var(--input-border); border-radius: 8px;" @bind="newTaskAssignee" placeholder="e.g. John Doe" />
+                            </div>
+                            <button class="btn" style="width: 100%; margin-top: 10px;" @onclick="AddTask">Save Task</button>
+                        </div>
+                    </div>
+                }
+
+                @if (tasks.Count == 0)
+                {
+                    <div class="card" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        <p>No tasks added yet. Create one above!</p>
+                    </div>
+                }
+                else
+                {
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        @foreach (var task in tasks)
+                        {
+                            <div class="card" style="padding: 15px 20px; opacity: @(task.IsCompleted ? "0.7" : "1");">
+                                <div style="display: flex; align-items: flex-start; gap: 15px;">
+                                    <input type="checkbox" checked="@task.IsCompleted" @onchange="() => ToggleTask(task.Id)" style="width: 20px; height: 20px; cursor: pointer; margin-top: 3px;" />
+                                    
+                                    <div style="flex-grow: 1;">
+                                        @if (editingTaskId == task.Id)
+                                        {
+                                            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+                                                <input type="text" class="form-control" style="width: 100%; height: 2.2rem; padding: 5px; font-size: 0.9rem;" @bind="editTaskName" />
+                                                <textarea class="form-control" style="width: 100%; height: 3.5rem; padding: 5px; font-size: 0.9rem;" @bind="editTaskDescription"></textarea>
+                                                <input type="text" class="form-control" style="width: 100%; height: 2.2rem; padding: 5px; font-size: 0.9rem;" @bind="editTaskAssignee" placeholder="Assignee" />
+                                                <div style="display: flex; gap: 10px;">
+                                                    <button class="btn" style="padding: 4px 10px; font-size: 0.8rem;" @onclick="SaveEditTask">Save</button>
+                                                    <button class="btn" style="padding: 4px 10px; font-size: 0.8rem; background-color: #e5e7eb; color: var(--text-main);" @onclick="() => editingTaskId = -1">Cancel</button>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <h4 style="margin: 0; font-size: 1.1rem; text-decoration: @(task.IsCompleted ? "line-through" : "none");">@task.Name</h4>
+                                            <p style="margin: 5px 0; font-size: 0.9rem; color: var(--text-muted);">@task.Description</p>
+                                            
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+                                                <div>
+                                                    @if (!string.IsNullOrEmpty(task.Assignee))
+                                                    {
+                                                        <span><strong>Assignee:</strong> @task.Assignee</span>
+                                                    }
+                                                </div>
+                                                <div style="display: flex; gap: 12px;">
+                                                    <button style="background: none; border: none; color: var(--tropical-teal); cursor: pointer; padding: 0;" @onclick="() => StartEditTask(task)">Edit</button>
+                                                    <button style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0;" @onclick="() => DeleteTask(task.Id)">Delete</button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- RIGHT COLUMN: Collaborators & Invitees -->
+            <div>
+                <!-- Collaborators Section -->
+                <div style="margin-bottom: 30px;">
+                    <div class="section-title" style="justify-content: space-between;">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 24px; height: 24px; color: var(--tropical-teal);">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Collaborators
+                        </span>
+                        <button class="btn" style="padding: 3px 8px; font-size: 0.8rem;" @onclick="() => addingCollaborator = !addingCollaborator">
+                            @(addingCollaborator ? "Cancel" : "+ Add")
+                        </button>
+                    </div>
+
+                    @if (addingCollaborator)
+                    {
+                        <div class="card" style="margin-bottom: 15px; padding: 15px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" class="form-control" style="flex-grow: 1; height: 2.2rem; padding: 5px 10px; font-size: 0.9rem;" @bind="newCollaboratorUsername" placeholder="Username" />
+                                <button class="btn" style="padding: 0 12px; font-size: 0.85rem;" @onclick="AddCollaborator">Add</button>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="card" style="padding: 15px;">
+                        @if (plan.Collaborators.Count == 0)
+                        {
+                            <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 10px 0;">No collaborators added.</p>
+                        }
+                        else
+                        {
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                @foreach (var col in plan.Collaborators)
+                                {
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem;">
+                                        <div>
+                                            <strong>@col.Name</strong>
+                                            <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">@@@col.Username</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Guests/Invitees Section -->
+                <div>
+                    <div class="section-title" style="justify-content: space-between;">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 24px; height: 24px; color: var(--tropical-teal);">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"></path>
+                            </svg>
+                            Guests
+                        </span>
+                        <button class="btn" style="padding: 3px 8px; font-size: 0.8rem;" @onclick="() => addingInvitee = !addingInvitee">
+                            @(addingInvitee ? "Cancel" : "+ Add")
+                        </button>
+                    </div>
+
+                    @if (addingInvitee)
+                    {
+                        <div class="card" style="margin-bottom: 15px; padding: 15px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" class="form-control" style="flex-grow: 1; height: 2.2rem; padding: 5px 10px; font-size: 0.9rem;" @bind="newInvitee" placeholder="Guest Name" />
+                                <button class="btn" style="padding: 0 12px; font-size: 0.85rem;" @onclick="AddInvitee">Add</button>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="card" style="padding: 15px;">
+                        @if (plan.Participants.Count == 0)
+                        {
+                            <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 10px 0;">No guests added yet.</p>
+                        }
+                        else
+                        {
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                @foreach (var guest in plan.Participants)
+                                {
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem;">
+                                        <span>@guest</span>
+                                        <button style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; padding: 0;" @onclick="() => RemoveInvitee(guest)">
+                                            Remove
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    int userId;
+    string username = string.Empty;
+    string name = string.Empty;
+    bool isLoading = true;
+
+    PlanDto? plan;
+    List<EventTaskDto> tasks = new();
+
+    // Collaborator
+    bool addingCollaborator = false;
+    string newCollaboratorUsername = string.Empty;
+
+    // Invitee
+    bool addingInvitee = false;
+    string newInvitee = string.Empty;
+
+    // Add Task
+    bool addingTask = false;
+    string newTaskName = string.Empty;
+    string newTaskDescription = string.Empty;
+    string newTaskAssignee = string.Empty;
+
+    // Edit Task
+    int editingTaskId = -1;
+    string editTaskName = string.Empty;
+    string editTaskDescription = string.Empty;
+    string editTaskAssignee = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                var userNameClaim = user.FindFirst(ClaimTypes.Name);
+
+                if (userIdClaim != null && userNameClaim != null && int.TryParse(userIdClaim.Value, out var parsedUserId))
+                {
+                    userId = parsedUserId;
+                    username = userNameClaim.Value;
+                    name = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
+                    
+                    await LoadData();
+                    
+                    isLoading = false;
+                    StateHasChanged();
+                }
+                else
+                {
+                    Navigation.NavigateTo("/login");
+                }
+            }
+            else
+            {
+                Navigation.NavigateTo("/login");
+            }
+        }
+    }
+
+    // --- ALL HTTP & CONTROLLER CALLS REPLACED WITH SERVICE CALLS ---
+
+    private async Task LoadData()
+    {
+        // Call the service directly instead of the Controller or HTTP
+        var plansResponse = await PlanService.GetPlansByUserAsync(userId);
+        if (plansResponse != null)
+            plan = plansResponse.FirstOrDefault(p => p.Id == id);
+
+        var tasksResponse = await TaskService.GetTasksByPlanIdAsync(id);
+        if (tasksResponse != null)
+            tasks = tasksResponse;
+    }
+
+    private async Task ToggleTask(int taskId)
+    {
+        await TaskService.ToggleTaskAsync(taskId);
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task DeleteTask(int taskId)
+    {
+        await TaskService.DeleteTaskAsync(taskId);
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task DeletePlan()
+    {
+        await PlanService.DeletePlanAsync(id);
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task AddTask()
+    {
+        var newTask = new EventTaskDto
+        {
+            Name = newTaskName,
+            Description = newTaskDescription,
+            Assignee = string.IsNullOrEmpty(newTaskAssignee) ? null : newTaskAssignee,
+            IsCompleted = false,
+            PlanId = id
+        };
+        
+        await TaskService.AddTaskAsync(newTask);
+        
+        newTaskName = string.Empty;
+        newTaskDescription = string.Empty;
+        newTaskAssignee = string.Empty;
+        addingTask = false;
+        
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private void StartEditTask(EventTaskDto task)
+    {
+        editingTaskId = task.Id;
+        editTaskName = task.Name;
+        editTaskDescription = task.Description;
+        editTaskAssignee = task.Assignee ?? string.Empty;
+    }
+
+    private async Task SaveEditTask()
+    {
+        var updated = new EventTaskDto
+        {
+            Id = editingTaskId,
+            Name = editTaskName,
+            Description = editTaskDescription,
+            Assignee = string.IsNullOrEmpty(editTaskAssignee) ? null : editTaskAssignee,
+            IsCompleted = tasks.First(t => t.Id == editingTaskId).IsCompleted,
+            PlanId = id
+        };
+        
+        await TaskService.UpdateTaskAsync(updated);
+        
+        editingTaskId = -1;
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task AddCollaborator()
+    {
+        if (!string.IsNullOrEmpty(newCollaboratorUsername))
+        {
+            await PlanService.AddCollaboratorAsync(id, newCollaboratorUsername);
+            await LoadData();
+        }
+
+        addingCollaborator = false;
+        newCollaboratorUsername = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task RemoveInvitee(string invitee)
+    {
+        await PlanService.RemoveInviteeAsync(id, invitee);
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task AddInvitee()
+    {
+        if (!string.IsNullOrEmpty(newInvitee))
+        {
+            await PlanService.AddInviteeAsync(id, newInvitee);
+            await LoadData();
+        }
+
+        newInvitee = string.Empty;
+        addingInvitee = false;
+        StateHasChanged();
+    }
+}

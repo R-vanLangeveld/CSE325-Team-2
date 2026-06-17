@@ -15,7 +15,7 @@
 
 <br><br>
 
-<EditForm class="form-container" Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="LoginUser" method="post">
+<EditForm class="form-container" Model="@userDto" OnValidSubmit="@ValidFormSubmitted">
 
     <legend style="font-size: x-large;">Login</legend>
     <p>Enter your username and password to login to you Holiday Planner!</p>
@@ -41,7 +41,7 @@
   string password = "";
   string Username { get; set; } = "";
 
-  HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "placeholder", Username = ""};
+  CSE325_Team_2.DTOs.UserDto userDto = new CSE325_Team_2.DTOs.UserDto { Name = "placeholder", Username = ""};
 
   async Task ValidFormSubmitted(EditContext editContext) {
 
@@ -90,7 +90,7 @@
         if (passwordHash == passwordFromDB) {
           Console.WriteLine(value: "Correct Password");
           await AuthStateProvider.Login(userDto.Id, userDto.Username, userDto.Name);
-Navigation.NavigateTo("/");
+          Navigation.NavigateTo("/", forceLoad: true);
         } else {
           Console.WriteLine(value: "Your password or username is incorrect.");
         }

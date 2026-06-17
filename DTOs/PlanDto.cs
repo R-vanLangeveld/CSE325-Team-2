@@ -1,4 +1,4 @@
-namespace HolidayPlanner.DTOs
+namespace CSE325_Team_2.DTOs
 {
     public class PlanDto
     {

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using CSE325_Team_2.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -13,11 +12,9 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CSE325_Team_2.Migrations
 {
     [DbContext(typeof(CSE325_Team_2Context))]
-    [Migration("20260602011900_InitialDataBaseMigraton")]
-    partial class InitialDataBaseMigraton
+    partial class CSE325_Team_2ContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,8 +31,8 @@ namespace CSE325_Team_2.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AssigneeId")
-                        .HasColumnType("integer");
+                    b.Property<string>("Assignee")
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -53,11 +50,9 @@ namespace CSE325_Team_2.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssigneeId");
-
                     b.HasIndex("PlanId");
 
-                    b.ToTable("EventTasks");
+                    b.ToTable("EventTasks", (string)null);
                 });
 
             modelBuilder.Entity("CSE325_Team_2.Model.Plan", b =>
@@ -93,7 +88,7 @@ namespace CSE325_Team_2.Migrations
 
                     b.HasIndex("CreatorId");
 
-                    b.ToTable("Plans");
+                    b.ToTable("Plans", (string)null);
                 });
 
             modelBuilder.Entity("CSE325_Team_2.Model.User", b =>
@@ -123,24 +118,16 @@ namespace CSE325_Team_2.Migrations
 
                     b.HasIndex("PlanId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("CSE325_Team_2.Model.EventTask", b =>
                 {
-                    b.HasOne("CSE325_Team_2.Model.User", "Assignee")
-                        .WithMany()
-                        .HasForeignKey("AssigneeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("CSE325_Team_2.Model.Plan", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Assignee");
 
                     b.Navigation("Plan");
                 });

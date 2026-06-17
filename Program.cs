@@ -1,6 +1,6 @@
 using CSE325_Team_2.Components;
 using Npgsql;
-using HolidayPlanner.Services;
+using CSE325_Team_2.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 
 
@@ -11,7 +11,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddNpgsqlDataSource(ConfigurationHelper.GetConnectionString("Default"));
 builder.Services.AddScoped<UsersController>();
-builder.Services.AddScoped<PlansController>();
+builder.Services.AddScoped<PlanService>();
+builder.Services.AddScoped<EventTaskService>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => 
     sp.GetRequiredService<CustomAuthStateProvider>());
@@ -26,7 +27,7 @@ await conn.OpenAsync();
 Console.WriteLine($"The PostgreSQL version: {conn.PostgreSqlVersion}");
 
 
-builder.Services.AddScoped<HolidayPlanner.Data.HolidayPlannerContext>();
+builder.Services.AddScoped<CSE325_Team_2.Data.CSE325_Team_2Context>();
 
 var app = builder.Build();
 

@@ -37,21 +37,34 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
     return new AuthenticationState(_user);
 }
     public async Task Login(int userId, string username, string name)
-{
-    await _sessionStorage.SetAsync("userId", userId);
-    await _sessionStorage.SetAsync("username", username);
-    await _sessionStorage.SetAsync("name", name);
-
-    var claims = new[]
     {
-        new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-        new Claim(ClaimTypes.Name, username),
-        new Claim(ClaimTypes.GivenName, name)
-    };
-    var identity = new ClaimsIdentity(claims, "CustomAuth");
-    _user = new ClaimsPrincipal(identity);
-    NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-}
+        try
+        {
+            await _sessionStorage.SetAsync("userId", userId);
+            await _sessionStorage.SetAsync("username", username);
+            await _sessionStorage.SetAsync("name", name);
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // Circuit disconnected mid-navigation (NavigateTo forceLoad tears down the circuit).
+            // The session was written before disconnect; the next page load will re-read it.
+        }
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Name, username),
+            new Claim(ClaimTypes.GivenName, name)
+        };
+        var identity = new ClaimsIdentity(claims, "CustomAuth");
+        _user = new ClaimsPrincipal(identity);
+
+        try
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException) { }
+    }
 
    public async Task Logout()
 {

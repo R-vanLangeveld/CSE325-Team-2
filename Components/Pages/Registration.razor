@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
 @using Npgsql
-@using HolidayPlanner.DTOs
+@using CSE325_Team_2.DTOs
 @using System
 @using System.Security.Cryptography
 @using System.Text
@@ -14,7 +14,7 @@
 
 <br><br>
 
-<EditForm class="form-container" Model="@userDto" OnValidSubmit="@RegisterUser" FormName="RegisterUser" method="post" style="display: flex; flex-direction: column; align-items: strech;">
+<EditForm class="form-container" Model="@userDto" OnValidSubmit="@RegisterUser" style="display: flex; flex-direction: column; align-items: stretch;">
     <legend style="font-size: x-large;">Register</legend>
 
     <label asp-for="name" style="font-size: large;">Name:</label>
@@ -40,7 +40,7 @@
 @code {
   string password = "";
   string Username { get; set; } = "";
-  HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "", Username = ""};
+  CSE325_Team_2.DTOs.UserDto userDto = new CSE325_Team_2.DTOs.UserDto { Name = "", Username = ""};
 
   async void RegisterUser(EditContext editContext) {
 
@@ -61,7 +61,7 @@
 				dto.Username = username;
 			}
 
-      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+      CSE325_Team_2.Services.UsersController U_Ctrlr = new CSE325_Team_2.Services.UsersController(dataSource);
 
       if(dto.Username != Username) {
         userDto.Username = Username;

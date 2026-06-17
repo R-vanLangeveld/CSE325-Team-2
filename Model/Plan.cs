@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace HolidayPlanner.Model
+namespace CSE325_Team_2.Model
 {
     public class Plan
     {
