@@ -23,7 +23,7 @@ public class PlansController : Controller
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
 
-        command.CommandText = "SELECT p.*, u.id as creator_id, u.name as creator_name, u.email as creator_email FROM plans p INNER JOIN users u ON p.creator_id = u.id WHERE p.id = @id";
+        command.CommandText = "SELECT p.*, u.id as creator_id, u.name as creator_name, u.email as creator_email FROM \"Plans\" p INNER JOIN \"Users\" u ON p.\"CreatorId\" = u.\"Id\" WHERE p.\"Id\" = @id";
         command.Parameters.AddWithValue("id", userId);
 
         var result = await command.ExecuteReaderAsync();
@@ -44,7 +44,7 @@ public class PlansController : Controller
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
 
-        command.CommandText = "INSERT INTO plans (name, description, price, date, creator_id) VALUES (@name, @description, @price, @date, @creatorId) RETURNING id";
+        command.CommandText = "INSERT INTO \"Plans\" (\"Name\", \"Description\", \"Price\", \"Date\", \"CreatorId\") VALUES (@name, @description, @price, @date, @creatorId) RETURNING \"Id\"";
         command.Parameters.AddWithValue("name", planDto.Name);
         command.Parameters.AddWithValue("description", planDto.Description);
         command.Parameters.AddWithValue("price", planDto.Price);
@@ -61,7 +61,7 @@ public class PlansController : Controller
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
 
-        command.CommandText = "UPDATE plans SET name = @name, description = @description, price = @price, date = @date WHERE id = @id";
+        command.CommandText = "UPDATE \"Plans\" SET \"Name\" = @name, \"Description\" = @description, \"Price\" = @price, \"Date\" = @date WHERE \"Id\" = @id";
         command.Parameters.AddWithValue("id", planDto.Id);
         command.Parameters.AddWithValue("name", planDto.Name);
         command.Parameters.AddWithValue("description", planDto.Description);
@@ -81,7 +81,7 @@ public class PlansController : Controller
         await using var connection = await _dataSource.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
 
-        command.CommandText = "DELETE FROM plans WHERE id = @id";
+        command.CommandText = "DELETE FROM \"Plans\" WHERE \"Id\" = @id";
         command.Parameters.AddWithValue("id", id);
 
         var rowsAffected = await command.ExecuteNonQueryAsync();
