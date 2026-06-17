@@ -20,11 +20,10 @@ WORKDIR /app
 # Copy published output from the build stage
 COPY --from=build /app/publish .
 
-# Render injects PORT at runtime; ASP.NET Core reads ASPNETCORE_URLS
-ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Expose the default port (Render overrides this via $PORT)
+# Expose default port; Render overrides via $PORT at runtime
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "CSE325_Team_2.dll"]
+# Shell form so ${PORT:-8080} expands correctly at container start
+ENTRYPOINT ["sh", "-c", "dotnet CSE325-Team-2.dll --urls http://+:${PORT:-8080}"]
