@@ -21,8 +21,7 @@
     <p>Enter your username and password to login to you Holiday Planner!</p>
 
     <label for="username">Username:</label>
-    <input class="form-control" type="text" required @bind-value="Username" placeholder="username" title="username must be at least 3 characters long and contain only letters, numbers, and underscores" pattern="^[a-zA-Z0-9_]{3,}$"
-   >
+    <input class="form-control" type="email" required @bind-value="Username" placeholder="exapmleEmail@example.co" title="Any valid email">
 
     <label for="password">Password:</label>
     <input class="form-control" type="password" required @bind-value="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
@@ -31,7 +30,7 @@
   <input class="btn login-btn" type="submit" value="Login" >
 </EditForm>
 
-<br><hr><br>
+<br><hr style="width: 100%;"><br>
 
 <a href="../registration">
   <button class="redirect-btn">New User? Click here to register</button>
@@ -65,8 +64,6 @@
 				userDto.Username = username;
 			}
 
-      
-
       if(userDto.Username == Username) {
         string sSourceData;
         byte[] tmpSource;
@@ -90,7 +87,7 @@
         if (passwordHash == passwordFromDB) {
           Console.WriteLine(value: "Correct Password");
           await AuthStateProvider.Login(userDto.Id, userDto.Username, userDto.Name);
-          Navigation.NavigateTo("/", forceLoad: true);
+          Navigation.NavigateTo("/");
         } else {
           Console.WriteLine(value: "Your password or username is incorrect.");
         }

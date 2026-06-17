@@ -118,6 +118,7 @@ public class PlanService
         await using var command = connection.CreateCommand();
 
         command.CommandText = "DELETE FROM \"Plans\" WHERE \"Id\" = @id";
+        command.CommandText = "DELETE FROM \"Plans\" WHERE \"Id\" = @id";
         command.Parameters.AddWithValue("id", id);
 
         await command.ExecuteNonQueryAsync();

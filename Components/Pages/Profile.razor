@@ -6,30 +6,26 @@
 @inject CustomAuthStateProvider AuthStateProvider
 @using System.Security.Claims
 
-
 <PageTitle>Profile</PageTitle>
 
 <h1>Profile Settings</h1>
 <div class="profile-container">
-  @if (isLoading)
-  {
-      <p>Loading...</p>
-  }
-  else
-  {
-      <div class="profile-info">
-          <div class="profile-icon"><h2>@(name.Length > 0 ?   name[0].ToString().ToUpper() : "Loading...")</h2></div>
-          <h3>@name</h3>
-         <p>@@@username</p>
-      </div>
-      
-  }
+    @if (isLoading)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <div class="profile-info">
+            <div class="profile-icon"><h2>@(name.Length > 0 ?   name[0].ToString().ToUpper() : "Loading...")</h2></div>
+            <h3>@name</h3>
+            <p>@@@username</p>
+        </div>
+    }
 </div>
 <div class="profile-actions">
-          <button class="logout-btn" @onclick="Logout">Logout</button>  
-      </div>
-
-
+    <button class="logout-btn" @onclick="Logout">Logout</button>  
+</div>
 
 @code {
     int userId;
