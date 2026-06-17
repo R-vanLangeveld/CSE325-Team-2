@@ -17,7 +17,7 @@ builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => 
     sp.GetRequiredService<CustomAuthStateProvider>());
 builder.Services.AddAuthorizationCore();
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:5070/") });
+builder.Services.AddScoped(sp => new HttpClient());
 
 
 string connectionString = ConfigurationHelper.GetConnectionString("Default");
@@ -39,7 +39,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
+// Render terminates TLS at its edge proxy; the container only receives plain HTTP.
+// Enabling HTTPS redirection here causes redirect loops in production.
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAntiforgery();
 
