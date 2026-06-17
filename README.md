@@ -79,14 +79,14 @@ Holiday Planner is designed for:
 
 ### Frontend
 
-* HTML
+* Razor Pages(server-rendered HTML)
 * CSS
 * JavaScript
 
 ### Backend
 
-* Node.js
-* Express.js
+* ASP.NET Core
+* C#
 
 ### Database
 
