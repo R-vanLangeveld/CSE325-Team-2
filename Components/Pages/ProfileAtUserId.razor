@@ -14,8 +14,7 @@
 <hr><br>
 
 <EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" style="display: flex; flex-direction: column; align-items: stretch;">
-  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
-    <legend style="font-size: x-large;">Update your account</legend>
+  <legend style="font-size: x-large;">Update your account</legend>
 
   <label asp-for="name" style="font-size: large;">Name:</label>
   <input class="form-control" asp-for="name" type="text" title="Type either your full name or your initials" required @bind-value="newName">
@@ -33,8 +32,7 @@
 <hr style="width: 100%; margin-top: 50px; margin-bottom: 50px;">
 
 <EditForm Model="@deleteUserDto" OnValidSubmit="@DeleteAccount" style="display: flex; flex-direction: column; align-items: stretch;">
-  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
-    <legend style="font-size: x-large;">Delete your account</legend>
+  <legend style="font-size: x-large;">Delete your account</legend>
 
   <label asp-for="toDelete" style="font-size: large;">Username:</label>
   <input class="form-control" asp-for="toDelete" type="email" title="Type your Username here" required @bind-value="toDelete"

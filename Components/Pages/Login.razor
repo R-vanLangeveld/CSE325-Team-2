@@ -20,12 +20,11 @@
     <legend style="font-size: x-large;">Login</legend>
     <p>Enter your username and password to login to you Holiday Planner!</p>
 
-    <label for="username">Username:</label>
-    <input class="form-control" type="email" required @bind-value="Username" placeholder="exapmleEmail@example.co" title="Any valid email">
+    <label asp-for="username">Username:</label>
+    <input class="form-control" type="email" required @bind-value="Username" placeholder="exapmleEmail@example.co" title="Any valid email" asp-for="username">
 
-    <label for="password">Password:</label>
-    <input class="form-control" type="password" required @bind-value="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
-    >
+    <label asp-for="password">Password:</label>
+    <input class="form-control" type="password" required @bind-value="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number" asp-for="password">
 
   <input class="btn login-btn" type="submit" value="Login" >
 </EditForm>
