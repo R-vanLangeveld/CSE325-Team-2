@@ -64,8 +64,6 @@
 				userDto.Username = username;
 			}
 
-      
-
       if(userDto.Username == Username) {
         string sSourceData;
         byte[] tmpSource;
@@ -89,7 +87,7 @@
         if (passwordHash == passwordFromDB) {
           Console.WriteLine(value: "Correct Password");
           await AuthStateProvider.Login(userDto.Id, userDto.Username, userDto.Name);
-Navigation.NavigateTo("/");
+          Navigation.NavigateTo("/");
         } else {
           Console.WriteLine(value: "Your password or username is incorrect.");
         }

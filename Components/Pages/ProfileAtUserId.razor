@@ -5,61 +5,55 @@
 @using System
 @using System.Security.Cryptography
 @using System.Text
+@layout EmptyLayout
 
 <PageTitle>Profile</PageTitle>
 
 <h1>Profile Settings</h1>
 
-<hr><br>
+<br>
 
-<EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" FormName="EditAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
-  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
-    <legend style="font-size: x-large;">Update your account</legend>
+<EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" FormName="EditAccount" method="post" class="form-container">
 
-    <label asp-for="name" style="font-size: large;">Name:</label>
-    <input asp-for="name" type="text" title="Type either your full name or your initials" required @bind-value="newName"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+  <legend style="font-size: x-large;">Update your account</legend>
 
-    <label asp-for="newPassword" style="font-size: large; margin-top: 20px;">New Password:</label>
-    <input asp-for="newPassword" type="text" required @bind-value="newPassword" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+  <label asp-for="name" style="font-size: large;">Name:</label>
+  <input class="form-control" asp-for="name" type="text" title="Type either your full name or your initials" required @bind-value="newName">
 
-    <label asp-for="confirmNewPassword" style="font-size: large; margin-top: 20px;">Confirm New Password:</label>
-    <input asp-for="confirmNewPassword" type="text" required @bind-value="confirmNewPassword" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+  <label asp-for="newPassword" style="font-size: large; margin-top: 20px;">New Password:</label>
+  <input class="form-control" asp-for="newPassword" type="text" required @bind-value="newPassword" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number">
 
-  </fieldset>
+  <label asp-for="confirmNewPassword" style="font-size: large; margin-top: 20px;">Confirm New Password:</label>
+  <input class="form-control" asp-for="confirmNewPassword" type="text" required @bind-value="confirmNewPassword" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number">
+
   <input type="hidden" @bind-value="Id">
-  <input type="submit" value="Update" style="padding: 15px; font-size: x-large; border-radius: 15px;">
+  <input class="btn login-btn" type="submit" value="Update">
 </EditForm>
 
-<br><br><br><hr><br><br><br>
+<EditForm Model="@deleteUserDto" class="form-container" style="margin-top: 50px;" OnValidSubmit="@DeleteAccount" FormName="DeleteAccount" method="post">
+  <legend style="font-size: x-large;">Delete your account</legend>
 
-<EditForm Model="@deleteUserDto" OnValidSubmit="@DeleteAccount" FormName="DeleteAccount" method="post" style="display: flex; flex-direction: column; align-items: strech;">
-  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 15px; border-radius: 15px;">
-    <legend style="font-size: x-large;">Delete your account</legend>
+  <label asp-for="toDelete" style="font-size: large;">Username:</label>
+  <input class="form-control" asp-for="toDelete" type="email" title="Type your Username here" required @bind-value="toDelete"
+  style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
 
-    <label asp-for="toDelete" style="font-size: large;">Username:</label>
-    <input asp-for="toDelete" type="email" title="Type your Username here" required @bind-value="toDelete"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+  <label asp-for="confirmToDelete" style="font-size: large; margin-top: 20px;">Confirm Username:</label>
+  <input class="form-control" asp-for="confirmToDelete" type="email" title="Type your Username here for confirmation" required @bind-value="confirmToDelete">
 
-    <label asp-for="confirmToDelete" style="font-size: large; margin-top: 20px;">Confirm Username:</label>
-    <input asp-for="confirmToDelete" type="email" title="Type your Username here for confirmation" required @bind-value="confirmToDelete"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+  <div style="margin-top: 30px;">
+    <input asp-for="comfirmDelete" type="checkbox" required name="comfirmDelete">
+    <label asp-for="comfirmDelete" style="font-size: large;">Click me to further confirm that you want to delete your account</label>
+  </div>
 
-    <div style="margin-top: 30px;">
-      <input asp-for="comfirmDelete" type="checkbox" required name="comfirmDelete">
-      <label asp-for="comfirmDelete" style="font-size: large;">Click me to further confirm that you want to delete your account</label>
-    </div>
-
-  </fieldset>
   <input type="hidden" @bind-value="Id">
-  <input type="submit" value="Delete" style="padding: 15px; font-size: x-large; border-radius: 15px;">
+  <input class="btn login-btn" type="submit" value="Delete">
 </EditForm>
 
 <br><br><br><br><br>
 
 @code {
+  
+  bool isLoading = true;
   [Parameter] public string? Id { get; set; }
   string newPassword = "";
   string confirmNewPassword = "";
