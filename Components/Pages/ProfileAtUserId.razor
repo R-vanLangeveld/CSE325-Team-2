@@ -11,10 +11,7 @@
 
 <h1>Profile Settings</h1>
 
-<br>
-
 <EditForm Model="@newUserDto" OnValidSubmit="@UpdateAccount" FormName="EditAccount" method="post" class="form-container">
-
   <legend style="font-size: x-large;">Update your account</legend>
 
   <label asp-for="name" style="font-size: large;">Name:</label>
@@ -30,7 +27,9 @@
   <input class="btn login-btn" type="submit" value="Update">
 </EditForm>
 
-<EditForm Model="@deleteUserDto" class="form-container" style="margin-top: 50px;" OnValidSubmit="@DeleteAccount" FormName="DeleteAccount" method="post">
+<hr style="width: 100%; margin-top: 50px; margin-bottom: 50px;">
+
+<EditForm Model="@deleteUserDto" class="form-container" OnValidSubmit="@DeleteAccount" FormName="DeleteAccount" method="post">
   <legend style="font-size: x-large;">Delete your account</legend>
 
   <label asp-for="toDelete" style="font-size: large;">Username:</label>
