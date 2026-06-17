@@ -1,0 +1,15 @@
+# Exclude local build artifacts — these would corrupt dotnet publish inside Docker
+bin/
+obj/
+publish/
+
+# Secrets
+.env
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vs/
+*.user

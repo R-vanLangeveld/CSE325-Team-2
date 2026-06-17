@@ -2,6 +2,7 @@ using CSE325_Team_2.Components;
 using Npgsql;
 using CSE325_Team_2.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +33,15 @@ builder.Services.AddScoped<CSE325_Team_2.Data.CSE325_Team_2Context>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+
+// Must be first: trust Render's reverse proxy so the app sees the correct
+// HTTPS scheme. Without this, antiforgery tokens fail on form submissions
+// because ASP.NET Core thinks the request is plain HTTP.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
