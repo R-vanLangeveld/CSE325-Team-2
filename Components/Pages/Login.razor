@@ -5,33 +5,36 @@
 @using System
 @using System.Security.Cryptography
 @using System.Text
+@layout EmptyLayout
+@inject NpgsqlDataSource DataSource
+@inject CustomAuthStateProvider AuthStateProvider
 
-<PageTitle>Login</PageTitle>
+<PageTitle>Holiday Planner - Login</PageTitle>
 
-<h1>Login</h1>
+<h1>Holiday Planner - Login</h1>
 
 <br><br>
 
-<EditForm Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="LoginUser" method="post" style="display: flex; flex-direction: column; align-items: strech;">
-  <fieldset style="display: flex; flex-direction: column; align-items: flex-start; padding-left: 20px; padding-right: 20px; padding-bottom: 20px; padding-top: 10px; border-radius: 15px;">
+<EditForm class="form-container" Model="@userDto" OnValidSubmit="@ValidFormSubmitted" FormName="LoginUser" method="post">
+
     <legend style="font-size: x-large;">Login</legend>
+    <p>Enter your username and password to login to you Holiday Planner!</p>
 
-    <label for="username" style="font-size: large;">Username:</label>
-    <input type="email" required @bind-value="Username" placeholder="exapmleEmail@example.co" title="Any valid email"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+    <label for="username">Username:</label>
+    <input class="form-control" type="text" required @bind-value="Username" placeholder="username" title="username must be at least 3 characters long and contain only letters, numbers, and underscores" pattern="^[a-zA-Z0-9_]{3,}$"
+   >
 
-    <label for="password" style="font-size: large; margin-top: 20px;">Password:</label>
-    <input type="text" required @bind-value="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
-    style="font-size: large; min-width: 225px; width: 100%; max-width: 512px;">
+    <label for="password">Password:</label>
+    <input class="form-control" type="password" required @bind-value="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{10,}" title="password must be at least 10 characters long and contain at least 1 of each of the following: lowercase letter, uppercase letter, number"
+    >
 
-  </fieldset>
-  <input type="submit" value="Login" style="padding: 15px; font-size: x-large; border-radius: 15px;">
+  <input class="btn login-btn" type="submit" value="Login" >
 </EditForm>
 
 <br><hr><br>
 
 <a href="../registration">
-  <button style="font-size: large; padding: 15px; border-radius: 15px;">New User? Click here to register</button>
+  <button class="redirect-btn">New User? Click here to register</button>
 </a>
 
 @code {
@@ -40,13 +43,12 @@
 
   HolidayPlanner.DTOs.UserDto userDto = new HolidayPlanner.DTOs.UserDto { Name = "placeholder", Username = ""};
 
-  async void ValidFormSubmitted(EditContext editContext) {
+  async Task ValidFormSubmitted(EditContext editContext) {
 
     string connectionString = ConfigurationHelper.GetConnectionString(name: "Default");
 
 		try {
-			await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(connectionString);
-			await using NpgsqlCommand cmd = dataSource.CreateCommand(commandText: "SELECT \"Id\", \"Username\", \"PasswordHash\" FROM \"Users\" WHERE \"Username\" = @username");
+			await using NpgsqlCommand cmd = DataSource.CreateCommand(commandText: "SELECT \"Id\", \"Username\", \"Name\", \"PasswordHash\" FROM \"Users\" WHERE \"Username\" = @username");
 
 			cmd.Parameters.AddWithValue(parameterName: "@username", Username);
 
@@ -56,12 +58,14 @@
 			while (await reader.ReadAsync()) {
 				int id = reader.GetInt32(ordinal: 0);
 				string username = reader.GetString(ordinal: 1);
-				passwordFromDB = reader.GetString(ordinal: 2);
+        string name = reader.GetString(ordinal: 2);
+				passwordFromDB = reader.GetString(ordinal: 3);
         userDto.Id = id;
+        userDto.Name = name;
 				userDto.Username = username;
 			}
 
-      HolidayPlanner.Services.UsersController U_Ctrlr = new HolidayPlanner.Services.UsersController(dataSource);
+      
 
       if(userDto.Username == Username) {
         string sSourceData;
@@ -85,7 +89,8 @@
 
         if (passwordHash == passwordFromDB) {
           Console.WriteLine(value: "Correct Password");
-          Navigation.NavigateTo(uri: $"/profile/{userDto.Id}");
+          await AuthStateProvider.Login(userDto.Id, userDto.Username, userDto.Name);
+Navigation.NavigateTo("/");
         } else {
           Console.WriteLine(value: "Your password or username is incorrect.");
         }

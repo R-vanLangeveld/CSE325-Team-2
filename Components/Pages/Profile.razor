@@ -1,18 +1,77 @@
 ﻿@page "/profile"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Identity
+@using HolidayPlanner.Services
 @inject NavigationManager Navigation
+@inject UsersController UsersController
+@inject CustomAuthStateProvider AuthStateProvider
+@using System.Security.Claims
+
 
 <PageTitle>Profile</PageTitle>
 
 <h1>Profile Settings</h1>
+<div class="profile-container">
+  @if (isLoading)
+  {
+      <p>Loading...</p>
+  }
+  else
+  {
+      <div class="profile-info">
+          <div class="profile-icon"><h2>@(name.Length > 0 ?   name[0].ToString().ToUpper() : "Loading...")</h2></div>
+          <h3>@name</h3>
+         <p>@@@username</p>
+      </div>
+      
+  }
+</div>
+<div class="profile-actions">
+          <button class="logout-btn" @onclick="Logout">Logout</button>  
+      </div>
 
-<a href="../login">
-  <button style="font-size: large; padding: 15px; border-radius: 15px;">Click here to login</button>
-</a>
 
-<br><br><hr><br>
 
-<a href="../registration">
-  <button style="font-size: large; padding: 15px; border-radius: 15px;">Click here to register</button>
-</a>
+@code {
+    int userId;
+    string username = string.Empty;
+    string name = string.Empty;
+    bool isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                var userNameClaim = user.FindFirst(ClaimTypes.Name);
+
+                if (userIdClaim != null && userNameClaim != null && int.TryParse(userIdClaim.Value, out var parsedUserId))
+                {
+                    userId = parsedUserId;
+                    username = userNameClaim.Value;
+                    name = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
+                    isLoading = false;
+                    StateHasChanged();
+                }
+                else
+                {
+                    Navigation.NavigateTo("/login");
+                }
+            }
+            else
+            {
+                Navigation.NavigateTo("/login");
+            }
+        }
+    }
+
+    private async Task Logout()
+    {
+        await AuthStateProvider.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

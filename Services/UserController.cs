@@ -211,4 +211,25 @@ public class UsersController : Controller {
 
 // return tokenHandler.WriteToken(token);
 // 	}
+
+	// temporary get all users added by Olamilekan
+	[HttpGet("GetAllUsers")]
+	public async Task<List<UserDto>> GetAllUsers() {
+		await using var connection = await _dataSource.OpenConnectionAsync();
+		await using var command = connection.CreateCommand();
+
+		command.CommandText = "SELECT \"Id\", \"Name\", \"Username\" FROM \"Users\"";
+
+		var result = await command.ExecuteReaderAsync();
+		var users = new List<UserDto>();
+
+		while (await result.ReadAsync()) {
+			users.Add(MapToDto(result));
+		}
+		Console.WriteLine($"users: {users.Count}");
+		users.ForEach(u => Console.WriteLine($"User: {u.Id}, {u.Name}, {u.Username}"));
+
+		return users;
+	}
+	
 }
