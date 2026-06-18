@@ -2,6 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /src
 
+RUN dotnet workload install wasm-tools
+
 # Copy project file and restore dependencies first (layer-cache friendly)
 COPY ["CSE325-Team-2.csproj", "./"]
 RUN dotnet restore "CSE325-Team-2.csproj"
