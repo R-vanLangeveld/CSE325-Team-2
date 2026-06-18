@@ -1,9 +1,16 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+
 <CascadingAuthenticationState>
-    <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+    <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
             <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="typeof(Layout.MainLayout)">
+                <Pages.NotFound />
+            </LayoutView>
+        </NotFound>
     </Router>
 </CascadingAuthenticationState>
