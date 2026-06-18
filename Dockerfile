@@ -1,5 +1,5 @@
 # --- Stage 1: Build ----------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /src
 
 # Copy project file and restore dependencies first (layer-cache friendly)
@@ -14,7 +14,7 @@ RUN dotnet publish "CSE325-Team-2.csproj" \
     --no-restore
 
 # --- Stage 2: Runtime --------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
 WORKDIR /app
 
 # Copy published output from the build stage
