@@ -11,7 +11,11 @@ COPY . .
 RUN dotnet publish "CSE325-Team-2.csproj" \
     -c Release \
     -o /app/publish \
-    --no-restore
+    --no-restore \
+  && echo "=== SEARCHING FOR blazor.web.js ===" \
+  && find /app/publish -name "blazor.web.js" || echo "FILE NOT FOUND" \
+  && echo "=== wwwroot contents ===" \
+  && find /app/publish/wwwroot -type f | sort || echo "wwwroot NOT FOUND"
 
 # --- Stage 2: Runtime --------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
