@@ -37,10 +37,15 @@ var app = builder.Build();
 // Must be first: trust Render's reverse proxy so the app sees the correct
 // HTTPS scheme. Without this, antiforgery tokens fail on form submissions
 // because ASP.NET Core thinks the request is plain HTTP.
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+};
+// Clear the default networks and proxies (which only trust localhost)
+// so that it accepts the headers from Render's load balancers.
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 if (!app.Environment.IsDevelopment())
 {
