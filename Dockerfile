@@ -5,11 +5,14 @@ COPY ["CSE325-Team-2.csproj", "./"]
 RUN dotnet restore "CSE325-Team-2.csproj"
 
 COPY . .
+
+# Separate publish from debug so failures are loud
 RUN dotnet publish "CSE325-Team-2.csproj" \
     -c Release \
-    -o /app/publish \
-    --no-restore \
-  && find /app/publish -name "blazor.web.js" || echo "NOT FOUND"
+    -o /app/publish
+
+# Verify output exists before final stage picks it up
+RUN ls /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
 WORKDIR /app
